@@ -70,68 +70,80 @@ import collections
 # Creating some names for the random variables (nodes) in the graph, to clarify meaning.
 
 # Create named tuple class with names "Names" and "Objects"
-RandomVariable = collections.namedtuple("RandomVariable", ["variable", "states"])
+RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
 
+Burglary = RandomVariable(var = "Burglary", states = ['True', 'False'])
+Earthquake = RandomVariable(var = "Earthquake", states = ['True', 'False'])
+Alarm = RandomVariable(var = "Alarm", states = ['True', 'False'])
+JohnCalls = RandomVariable(var = "JohnCalls", states = ['True', 'False'])
+MaryCalls = RandomVariable(var = "MaryCalls", states = ['True', 'False'])
 
-Earthquake = RandomVariable(variable = "Earthquake", states = ['True', 'False'])
-Earthquake.states
+#Burglary: Dict[Variable, List[State]] = {Burglary.var: ['True', 'False']}
+#Earthquake: Dict[Variable, List[State]] = {Earthquake.var: ['True', 'False']}
+#Alarm: Dict[Variable, List[State]] = {Alarm.var: ['True', 'False']}
+#JohnCalls: Dict[Variable, List[State]] = {JohnCalls.var: ['True', 'False']}
+#MaryCalls: Dict[Variable, List[State]] = {MaryCalls.var: ['True', 'False']}
 
-Burglary = collections.namedtuple("Burglary", ["variable", "states"])
-Burglary = collections.namedtuple("Burglary", ["variable", "states"])
-Burglary = collections.namedtuple("Burglary", ["variable", "states"])
-
-
-Burglary: Dict[Variable, List[State]] = {'Burglary': ['True', 'False']}
-Earthquake: Dict[Variable, List[State]] = {'Earthquake': ['True', 'False']}
-Alarm: Dict[Variable, List[State]] = {'Alarm': ['True', 'False']}
-JohnCalls: Dict[Variable, List[State]] = {'JohnCalls': ['True', 'False']}
-MaryCalls: Dict[Variable, List[State]] = {'MaryCalls': ['True', 'False']}
-
-
-list(Burglary.keys())[0]
 
 # Defining the network structure:
-alarmModel: BayesianModel = BayesianModel([(Burglary.keys(), 'Alarm'),
-                                           ('Earthquake', 'Alarm'),
-                                           ('Alarm', 'JohnCalls'),
-                                           ('Alarm', 'MaryCalls')])
+#alarmModel: BayesianModel = BayesianModel([(Burglary.variable, Alarm.variable),
+#                                           (Earthquake.variable, Alarm.variable),
+#                                           (Alarm.variable, JohnCalls.variable),
+#                                           (Alarm.variable, MaryCalls.variable)])
+
+alarmModel: BayesianModel = BayesianModel([(Burglary.var, Alarm.var),
+                                          (Earthquake.var, Alarm.var),
+                                          (Alarm.var, JohnCalls.var),
+                                          (Alarm.var, MaryCalls.var)])
 
 # Defining parameters using CPT
-cpdBurglary: TabularCPD = TabularCPD(variable = 'Burglary', variable_card = 2,
-                                     values = [[0.999, 0.001]],
-                                     state_names = {'Burglary' : ['False', 'True']})
+
+cpdBurglary: TabularCPD = TabularCPD(variable = Burglary.var, variable_card = len(Burglary.states),
+                                     values = [[0.001, 0.999]],
+                                     state_names = {Burglary.var : Burglary.states})
+
 print(cpdBurglary)
 
 # %% codecell
-cpdEarthquake: TabularCPD = TabularCPD(variable = 'Earthquake', variable_card = 2,
+cpdEarthquake: TabularCPD = TabularCPD(variable = Earthquake.var,
+                                       variable_card = len(Earthquake.states),
                                        values = [[0.002, 0.998]],
-                                       state_names = {'Earthquake' : ['True', 'False']})
+                                       state_names = {Earthquake.var : Earthquake.states})
 
 print(cpdEarthquake)
 
 # %% codecell
-cpdAlarm: TabularCPD = TabularCPD(variable = 'Alarm', variable_card = 2,
+cpdAlarm: TabularCPD = TabularCPD(variable = Alarm.var,
+                                  variable_card = len(Alarm.states),
                                   values = [[0.95, 0.94, 0.29, 0.001],
                                             [0.05, 0.06, 0.71, 0.999]],
-                                  evidence = ['Burglary', 'Earthquake'], evidence_card = [2,2],
-                                  state_names = {'Alarm': ['True', 'False'], 'Burglary':['True','False'],'Earthquake': ['True', 'False']})
+                                  evidence = [Burglary.var, Earthquake.var],
+                                  evidence_card = [len(Burglary.states), len(Earthquake.states)],
+                                  state_names = {Alarm.var: Alarm.states,
+                                                 Burglary.var : Burglary.states,
+                                                 Earthquake.var : Earthquake.states})
 print(cpdAlarm)
 
 
+#def toDict(tup: RandomVariable):
+#    return {tup.var : tup.states}
+
 # %% codecell
-cpdJohnCalls: TabularCPD = TabularCPD(variable = 'JohnCalls', variable_card = 2,
+cpdJohnCalls: TabularCPD = TabularCPD(variable = JohnCalls.var, variable_card = len(JohnCalls.states),
                                       values = [[0.90, 0.05],
                                                 [0.10, 0.95]],
-                                      evidence = ['Alarm'], evidence_card = [2],
-                                      state_names = {'JohnCalls': ['True', 'False'], 'Alarm' : ['True', 'False']})
+                                      evidence = [Alarm.var], evidence_card = [len(Alarm.states)],
+                                      state_names = {JohnCalls.var : JohnCalls.states,
+                                                     Alarm.var : Alarm.states})
 print(cpdJohnCalls)
 
 # %% codecell
-cpdMaryCalls: TabularCPD = TabularCPD(variable = 'MaryCalls', variable_card = 2,
+cpdMaryCalls: TabularCPD = TabularCPD(variable = MaryCalls.var, variable_card = len(MaryCalls.states),
                                       values = [[0.70, 0.01],
                                                 [0.30, 0.99]],
-                                      evidence = ['Alarm'], evidence_card = [2],
-                                      state_names = {'MaryCalls': ['True', 'False'], 'Alarm' : ['True', 'False']})
+                                      evidence = [Alarm.var], evidence_card = [len(Alarm.states)],
+                                      state_names = {MaryCalls.var: MaryCalls.states,
+                                                     Alarm.var : Alarm.states})
 print(cpdMaryCalls)
 
 # %% codecell
@@ -143,40 +155,47 @@ assert alarmModel.check_model()
 # %% markdown [markdown]
 # Making a brief-name version for viewing clarity, in tables:
 # %% codecell
-alarmModel_brief: BayesianModel = BayesianModel([('B', 'A'),
-                                                 ('E', 'A'),
-                                                 ('A', 'J'),
-                                                 ('A', 'M')])
+alarmModel_brief: BayesianModel = BayesianModel([(Burglary.var[0], Alarm.var[0]),
+                                          (Earthquake.var[0], Alarm.var[0]),
+                                          (Alarm.var[0], JohnCalls.var[0]),
+                                          (Alarm.var[0], MaryCalls.var[0])])
 
 # Defining parameters using CPT
-cpdBurglary: TabularCPD = TabularCPD(variable = 'B', variable_card = 2,
-                                     values = [[0.999, 0.001]],
-                                     state_names = {'B' : ['False', 'True']})
 
-cpdEarthquake: TabularCPD = TabularCPD(variable = 'E', variable_card = 2,
+cpdBurglary: TabularCPD = TabularCPD(variable = Burglary.var[0], variable_card = len(Burglary.states),
+                                     values = [[0.001, 0.999]],
+                                     state_names = {Burglary.var[0] : Burglary.states})
+
+
+cpdEarthquake: TabularCPD = TabularCPD(variable = Earthquake.var[0],
+                                       variable_card = len(Earthquake.states),
                                        values = [[0.002, 0.998]],
-                                       state_names = {'E' : ['True', 'False']})
+                                       state_names = {Earthquake.var[0] : Earthquake.states})
 
-cpdAlarm: TabularCPD = TabularCPD(variable = 'A', variable_card = 2,
+
+cpdAlarm: TabularCPD = TabularCPD(variable = Alarm.var[0],
+                                  variable_card = len(Alarm.states),
                                   values = [[0.95, 0.94, 0.29, 0.001],
                                             [0.05, 0.06, 0.71, 0.999]],
-                                  evidence = ['B', 'E'], evidence_card = [2,2],
-                                  state_names = {'A': ['True', 'False'], 'B':['True','False'],'E': ['True', 'False']})
+                                  evidence = [Burglary.var[0], Earthquake.var[0]],
+                                  evidence_card = [len(Burglary.states), len(Earthquake.states)],
+                                  state_names = {Alarm.var[0]: Alarm.states,
+                                                 Burglary.var[0] : Burglary.states,
+                                                 Earthquake.var[0] : Earthquake.states})
 
-
-cpdJohnCalls: TabularCPD = TabularCPD(variable = 'J', variable_card = 2,
+cpdJohnCalls: TabularCPD = TabularCPD(variable = JohnCalls.var[0], variable_card = len(JohnCalls.states),
                                       values = [[0.90, 0.05],
                                                 [0.10, 0.95]],
-                                      evidence = ['A'], evidence_card = [2],
-                                      state_names = {'J': ['True', 'False'], 'A' : ['True', 'False']})
+                                      evidence = [Alarm.var[0]], evidence_card = [len(Alarm.states)],
+                                      state_names = {JohnCalls.var[0] : JohnCalls.states,
+                                                     Alarm.var[0] : Alarm.states})
 
-
-cpdMaryCalls: TabularCPD = TabularCPD(variable = 'M', variable_card = 2,
+cpdMaryCalls: TabularCPD = TabularCPD(variable = MaryCalls.var[0], variable_card = len(MaryCalls.states),
                                       values = [[0.70, 0.01],
                                                 [0.30, 0.99]],
-                                      evidence = ['A'], evidence_card = [2],
-                                      state_names = {'M': ['True', 'False'], 'A' : ['True', 'False']})
-
+                                      evidence = [Alarm.var[0]], evidence_card = [len(Alarm.states)],
+                                      state_names = {MaryCalls.var[0]: MaryCalls.states,
+                                                     Alarm.var[0] : Alarm.states})
 
 alarmModel_brief.add_cpds(cpdBurglary, cpdEarthquake, cpdAlarm, cpdJohnCalls, cpdMaryCalls)
 
@@ -190,19 +209,19 @@ pgmpyToGraphCPD(model = alarmModel, shorten = False)
 # %% markdown [markdown]
 # ## 1/ Independencies of the Alarm Model
 # %% codecell
-alarmModel.local_independencies('Burglary')
+alarmModel.local_independencies(Burglary.var)
 # %% codecell
-alarmModel.local_independencies('Earthquake')
+alarmModel.local_independencies(Earthquake.var)
 # %% codecell
-alarmModel.local_independencies('Alarm')
+alarmModel.local_independencies(Alarm.var)
 # %% codecell
-print(alarmModel.local_independencies('MaryCalls'))
+print(alarmModel.local_independencies(MaryCalls.var))
 
-indepSynonymTable(model = alarmModel, queryNode = 'MaryCalls')
+indepSynonymTable(model = alarmModel, queryNode = MaryCalls.var)
 # %% codecell
-print(alarmModel.local_independencies('JohnCalls'))
+print(alarmModel.local_independencies(JohnCalls.var))
 
-indepSynonymTable(model = alarmModel, queryNode = 'JohnCalls')
+indepSynonymTable(model = alarmModel, queryNode = JohnCalls.var)
 # %% codecell
 alarmModel.get_independencies()
 
@@ -222,15 +241,25 @@ pgmpyToGraph(alarmModel)
 # ### Example 1: I-map
 # Testing meaning of an **I-map** using a simple student example
 # %% codecell
+Difficulty: RandomVariable = RandomVariable(var = 'diff', states = ['Easy', 'Hard'])
+Grade: RandomVariable = RandomVariable(var = 'grade', states = ['Good', 'Medium', 'Bad'])
+Intelligence: RandomVariable = RandomVariable(var = 'intel', states = ['Dumb', 'Average', 'Intelligent'])
 
-gradeModel = BayesianModel([('diff', 'grade'), ('intel', 'grade')])
 
-diff_cpd = TabularCPD('diff', 2, [[0.2], [0.8]])
-intel_cpd = TabularCPD('intel', 3, [[0.5], [0.3], [0.2]])
-grade_cpd = TabularCPD('grade', 3, [[0.1,0.1,0.1,0.1,0.1,0.1],
+gradeModel = BayesianModel([(Difficulty.var, Grade.var), (Intelligence.var, Grade.var)])
+
+diff_cpd = TabularCPD(variable = Difficulty.var, variable_card = len(Difficulty.states),
+                      values = [[0.2], [0.8]])
+
+intel_cpd = TabularCPD(variable = Intelligence.var, variable_card = len(Intelligence.states),
+                       values = [[0.5], [0.3], [0.2]])
+
+grade_cpd = TabularCPD(variable = Grade.var, variable_card = len(Grade.states),
+                       values = [[0.1,0.1,0.1,0.1,0.1,0.1],
                                     [0.1,0.1,0.1,0.1,0.1,0.1],
                                     [0.8,0.8,0.8,0.8,0.8,0.8]],
-                       evidence=['diff', 'intel'], evidence_card=[2, 3])
+                       evidence=[Difficulty.var, Intelligence.var],
+                       evidence_card=[len(Difficulty.states), len(Intelligence.states)])
 
 gradeModel.add_cpds(diff_cpd, intel_cpd, grade_cpd)
 
@@ -244,7 +273,8 @@ pgmpyToGraphCPD(gradeModel)
 jpdValues = [0.01, 0.01, 0.08, 0.006, 0.006, 0.048, 0.004, 0.004, 0.032,
            0.04, 0.04, 0.32, 0.024, 0.024, 0.192, 0.016, 0.016, 0.128]
 
-JPD = JointProbabilityDistribution(variables = ['diff', 'intel', 'grade'], cardinality = [2, 3, 3], values = jpdValues)
+JPD = JointProbabilityDistribution(variables = [Difficulty.var , Intelligence.var, Grade.var],
+                                   cardinality = [len(Difficulty.states), len(Intelligence.states), len(Grade.states)], values = jpdValues)
 
 print(JPD)
 
@@ -325,106 +355,151 @@ pgmpyToGraph(alarmModel)
 # For a causal model $A \rightarrow B \rightarrow C$, when the state of the middle node $B$ is unobserved, then an active trail is created between the nodes, namely the active trail is $A \rightarrow B \rightarrow C$. Information can now flow from node $A$ to node $C$ via node $B$. This implies there is a dependency between nodes $A$ and $C$, so the probability of $A$ taking on any of its states can influence the probability of $C$ taking on any of its states. This is called **marginal dependence** We can write this as: $P(A | C) \ne P(A)$
 #
 # $\color{red}{\text{TODO}}$ left off here trying to refactor the text (continue from sublime notes pg 35 Korb and pg 336 Bayesiabook)
-# %% markdown
 # $$
 # \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longrightarrow \text{Alarm} \longrightarrow \text{MaryCalls}}
 # $$
 #
-# When the middle node `Alarm` is unknown / unobserved, there IS an active trail between `Burglary` and `MaryCalls`. In other words, there is a dependence between `Burglary` and `MaryCalls` when `Alarm` is unobserved. This means the probability of `Burglary` can influence probability of `MaryCalls` (and vice versa) when information about `Alarm`'s state is unknown.
+# Given that the state of `Alarm` is unobserved, we can state the following equivalent statements:
+# * there IS an active trail between `Burglary` and `MaryCalls`.
+# * the random variables `Burglary` and `MaryCalls` are dependent.
+# * the probability of `Burglary` can influence probability of `MaryCalls` (and vice versa).
 #
-#
-# $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longrightarrow \text{Alarm} \longrightarrow \text{JohnCalls}}
-# $$
-# When `Alarm`'s state is uknown, there is an active trail or dependency between `Burglary` and `JohnCalls`, so the probability of `Burglary` can influence the probability of `JohnCalls` (and vice versa) when `Alarm`'s state is unknown.
-#
-# $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longrightarrow \text{Alarm} \longrightarrow \text{MaryCalls}}
-# $$
-# When `Alarm`'s state is uknown, there is an active trail or dependency between `Earthquake` and `MaryCalls`, so the probability of `Earthquake` can influence the probability of `MaryCalls` (and vice versa) when `Alarm`'s state is unknown.
+# Similarly, the same kinds of statements can be made for the other causal chain pathways in the graph:
 #
 # $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longrightarrow \text{Alarm} \longrightarrow \text{JohnCalls}}
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longrightarrow \text{Alarm} \longrightarrow \text{JohnCalls}}
 # $$
-# When `Alarm`'s state is uknown, there is an active trail or dependency between `Earthquake` and `JohnCalls`, so the probability of `Earthquake` can influence the probability of `JohnCalls` (and vice versa) when `Alarm`'s state is unknown.
+# Given that the state of `Alarm` is unobserved, we can state the following equivalent statements:
+# * there IS an active trail between `Burglary` and `JohnCalls`.
+# * the random variables `Burglary` and `JohnCalls` are dependent.
+# * the probability of `Burglary` can influence probability of `JohnCalls` (and vice versa).
+#
+# $$
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longrightarrow \text{Alarm} \longrightarrow \text{MaryCalls}}
+# $$
+# Given that the state of `Alarm` is unobserved, we can state the following equivalent statements:
+# * there IS an active trail between `Earthquake` and `MaryCalls`.
+# * the random variables `Earthquake` and `MaryCalls` are dependent.
+# * the probability of `Earthquake` can influence probability of `MaryCalls` (and vice versa).
+#
+# $$
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longrightarrow \text{Alarm} \longrightarrow \text{JohnCalls}}
+# $$
+# Given that the state of `Alarm` is unobserved, we can state the following equivalent statements:
+# * there IS an active trail between `Earthquake` and `JohnCalls`.
+# * the random variables `Earthquake` and `JohnCalls` are dependent.
+# * the probability of `Earthquake` can influence probability of `JohnCalls` (and vice versa).
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert alarmModel.is_active_trail(start = 'Burglary', end = 'MaryCalls', observed = None)
-assert alarmModel.is_active_trail(start = 'Burglary', end = 'JohnCalls', observed = None)
-assert alarmModel.is_active_trail(start = 'Earthquake', end = 'MaryCalls', observed = None)
-assert alarmModel.is_active_trail(start = 'Earthquake', end = 'JohnCalls', observed = None)
+assert alarmModel.is_active_trail(start = Burglary.var, end = MaryCalls.var, observed = None)
+assert alarmModel.is_active_trail(start = Burglary.var, end = JohnCalls.var, observed = None)
+assert alarmModel.is_active_trail(start = Earthquake.var, end = MaryCalls.var, observed = None)
+assert alarmModel.is_active_trail(start = Earthquake.var, end = JohnCalls.var, observed = None)
 
-showActiveTrails(model = alarmModel, variables = ['Burglary', 'MaryCalls'])
+showActiveTrails(model = alarmModel, variables = [Burglary.var, MaryCalls.var])
 
 # %% codecell
 elim: VariableElimination = VariableElimination(model = alarmModel)
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities (example of $B \rightarrow A \rightarrow J$ trail)
-# ##### Causal Reasoning For Causal Model:
+# * **NOTE:** Causal Reasoning For Causal Model:
 # %% markdown [markdown]
 # The probability below is:
 # $$
-# P(\text{JohnCalls} = \text{True}) = 0.8482
+# P(\text{JohnCalls} = \text{True}) =  0.0521
 # $$
 # %% codecell
-BJ: DiscreteFactor = elim.query(variables = ['JohnCalls'], evidence = None)
+BJ: DiscreteFactor = elim.query(variables = [JohnCalls.var], evidence = None)
 print(BJ)
 # %% markdown [markdown]
-# Below we see that when there has been `Burglary` and no `Alarm` was observed, there is a higher probability of `JohnCalls`, compared to when no `Burglary` was observed and no `Alarm` was observed (BJ). Specifically,
+# Below we see that when there is evidence of `Burglary` and no `Alarm` was observed, there is a higher probability of `JohnCalls`, compared to when no `Burglary` was observed and no `Alarm` was observed (BJ). Specifically,
 # $$
 # P(\text{JohnCalls} = \text{True} \; | \; \text{Burglary} = \text{True}) = 0.8490
 # $$
 # while above:
 # $$
-# P(\text{JohnCalls} = \text{True}) = 0.8482
+# P(\text{JohnCalls} = \text{True}) =  0.0521
 # $$
 # %% codecell
-BJ_1 = elim.query(variables = ['JohnCalls'], evidence = {'Burglary':'True'})
+BJ_1 = elim.query(variables = [JohnCalls.var], evidence = {Burglary.var: 'True'})
 print(BJ_1)
 # %% markdown [markdown]
-# Below we see that when there is no `Burglary` and no `Alarm` was observed, there is a lower probability of `JohnCalls`, compared to when `Burglary` did occur and no `Alarm` was observed (BJ_1). Specifically,
+# Below we see that when there is no `Burglary` and no `Alarm` was observed, there is a lower probability of `JohnCalls`, compared to when `Burglary` did occur and no `Alarm` was observed (BJ_1).
 # $$
 # P(\text{JohnCalls} = \text{True} \; | \; \text{Burglary} = \text{False}) = 0.0513
 # $$
 # %% codecell
-BJ_2 = elim.query(variables = ['JohnCalls'], evidence = {'Burglary':'False'})
+BJ_2 = elim.query(variables = [JohnCalls.var], evidence = {Burglary.var:'False'})
 print(BJ_2)
+# %% markdown [markdown]
+# Through the above steps, we observed some probabilities conditional on some states. To present them all in one place, here are the probabilities that `JohnCalls = True, where the last two are conditional on `Burglary.states = ['True', 'False']`.
+# $$
+# \begin{array}{ll}
+# P(\text{JohnCalls} = \text{True}) &= 0.0521 \\
+# P(\text{JohnCalls} = \text{True} \; | \; \text{Burglary} = \text{True}) &= 0.8490 \\
+# P(\text{JohnCalls} = \text{True} \; | \; \text{Burglary} = \text{False}) &= 0.0513
+# \end{array}
+# $$
+# From probability theory, we know that two random variables $A$ and $B$ are independent if and only if $P(A) = P(A \; | \; B)$ (by definition this statement holds for all the states that the random variables $A$ and $B$ can take on).
+#
+# Therefore, the fact that the above probabilities are not the same implies the random variables `JohnCalls` and `Burglary` are dependent (not independent). This is expressed in probability notation as follows:
+# $$
+# P(\text{JohnCalls}) \ne P(\text{JohnCalls} \; | \; \text{Burglary})
+# $$
+# Using pgmpy, we can access the previously calculated probabilites using the `.values` accessor to assert the probabilities aren't equal, which asserts the random variables `JohnCalls` and `Burglary` are dependent:
 # %% codecell
-assert (BJ.values != BJ_1.values).all() and (BJ.values != BJ_2.values).all(), "Check there is dependency between Burglary and JohnCalls, when Alarm state is unobserved "
+assert (BJ.values != BJ_1.values).all() and (BJ.values != BJ_2.values).all(), "Check: variables Burglary and JohnCalls are dependent, given that Alarm's state is unobserved "
 
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities (example of $E \rightarrow A \rightarrow M$ trail)
-# ##### Causal Reasoning For Causal Model:
+# * **NOTE:** Causal Reasoning For Causal Model:
 # %% markdown [markdown]
 # The probability below is:
 # $$
-# P(\text{MaryCalls} = \text{True}) = 0.6580
+# P(\text{MaryCalls} = \text{True}) = 0.0117
 # $$
 # %% codecell
-EM: DiscreteFactor = elim.query(variables = ['MaryCalls'], evidence = None)
+EM: DiscreteFactor = elim.query(variables = [MaryCalls.var], evidence = None)
 print(EM)
 # %% markdown [markdown]
 # Below we see that when `Earthquake` occurs and no `Alarm` was observed, there is a higher probability of `MaryCalls`, compared to when neither `Alarm` nor `Earthquake` were observed:
 # $$
-# P(\text{MaryCalls} = \text{True} \; | \; \text{Earthquake} = \text{True}) = 0.6650
+# P(\text{MaryCalls} = \text{True} \; | \; \text{Earthquake} = \text{True}) = 0.2106
 # $$
 # %% codecell
-EM_1 = elim.query(variables = ['MaryCalls'], evidence = {'Earthquake':'True'})
+EM_1 = elim.query(variables = [MaryCalls.var], evidence = {Earthquake.var:'True'})
 print(EM_1)
 # %% markdown [markdown]
 # Below we see that when `Earthquake` does not occur and no `Alarm` was observed, there is a lower probability of `MaryCalls`, compared to when `Earthquake` occurs and no `Alarm` was observed:
 # $$
-# P(\text{MaryCalls} = \text{True} \; | \; \text{Earthquake} = \text{False}) = 0.6580
+# P(\text{MaryCalls} = \text{True} \; | \; \text{Earthquake} = \text{False}) = 0.0113
 # $$
 # Incidentally, this is the same probability as when no `Earthquake` and no `Alarm` was observed.
 # %% codecell
-EM_2 = elim.query(variables = ['MaryCalls'], evidence = {'Earthquake':'False'})
+EM_2 = elim.query(variables = [MaryCalls.var], evidence = {Earthquake.var:'False'})
 print(EM_2)
+
+# %% markdown [markdown]
+# Through the above steps, we observed some probabilities conditional on some states. To present them all in one place, here are the probabilities that `MaryCalls = True, where the last two are conditional on `Earthquake.states = ['True', 'False']`.
+# $$
+# \begin{array}{ll}
+# P(\text{MaryCalls} = \text{True}) &= 0.0117 \\
+# P(\text{MaryCalls} = \text{True} \; | \; \text{Earthquake} = \text{True}) &= 0.2106 \\
+# P(\text{MaryCalls} = \text{True} \; | \; \text{Earthquake} = \text{False}) &= 0.0113
+# \end{array}
+# $$
+# From probability theory, we know that two random variables $A$ and $B$ are independent if and only if $P(A) = P(A \; | \; B)$ (by definition this statement holds for all the states that the random variables $A$ and $B$ can take on).
+#
+# Therefore, the fact that the above probabilities are not the same implies the random variables `MaryCalls` and `Earthquake` are dependent (not independent). This is expressed in probability notation as follows:
+# $$
+# P(\text{MaryCalls}) \ne P(\text{MaryCalls} \; | \; \text{Earthquake})
+# $$
+# Using pgmpy, we can access the previously calculated probabilites using the `.values` accessor to assert the probabilities aren't equal, which asserts that the random variables `MaryCalls` and `Earthquake` are dependent:
 # %% codecell
-assert (EM.values != EM_1.values).all() and (EM.values != EM_2.values).all(), "Check there is dependency between Earthquake and MaryCalls, when Alarm state is unobserved "
+assert (EM.values != EM_1.values).all() and (EM.values != EM_2.values).all(), "Check: random variables Earthquake and MaryCalls are independent, given that Alarm state is unobserved "
 
 
 
@@ -454,30 +529,30 @@ assert (EM.values != EM_1.values).all() and (EM.values != EM_2.values).all(), "C
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert not alarmModel.is_active_trail(start = 'Burglary', end = 'MaryCalls', observed = 'Alarm')
-assert not alarmModel.is_active_trail(start = 'Burglary', end = 'JohnCalls', observed = 'Alarm')
-assert not alarmModel.is_active_trail(start = 'Earthquake', end = 'MaryCalls', observed = 'Alarm')
-assert not alarmModel.is_active_trail(start = 'Earthquake', end = 'JohnCalls', observed = 'Alarm')
+assert not alarmModel.is_active_trail(start = Burglary.var, end = MaryCalls.var, observed = Alarm.var)
+assert not alarmModel.is_active_trail(start = Burglary.var, end = JohnCalls.var, observed = Alarm.var)
+assert not alarmModel.is_active_trail(start = Earthquake.var, end = MaryCalls.var, observed = Alarm.var)
+assert not alarmModel.is_active_trail(start = Earthquake.var, end = JohnCalls.var, observed = Alarm.var)
 
-showActiveTrails(model = alarmModel, variables = ['Burglary', 'MaryCalls'], observed = 'Alarm')
+showActiveTrails(model = alarmModel, variables = [Burglary.var, MaryCalls.var], observed = Alarm.var)
 
 # %% markdown [markdown]
 # **Verify:** Using Independencies (just the $(B \; \bot \; M \; | \; A)$ independence)
 # %% codecell
-indepBurglary: IndependenceAssertion = Independencies(['Burglary', 'MaryCalls', ['Alarm']]).get_assertions()[0]; indepBurglary
+indepBurglary: IndependenceAssertion = Independencies([Burglary.var, MaryCalls.var, [Alarm.var]]).get_assertions()[0]; indepBurglary
 
-indepMary: IndependenceAssertion = Independencies(['MaryCalls', 'Burglary', ['Alarm']]).get_assertions()[0]; indepMary
+indepMary: IndependenceAssertion = Independencies([MaryCalls.var, Burglary.var, [Alarm.var]]).get_assertions()[0]; indepMary
 
 # Using the fact that closure returns independencies that are IMPLIED by the current independencies:
 assert (str(indepMary) == '(MaryCalls _|_ Burglary | Alarm)' and
-        indepMary in alarmModel.local_independencies('MaryCalls').closure().get_assertions()),  \
+        indepMary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
         "Check 1: Burglary and MaryCalls are independent once conditional on Alarm"
 
 assert (str(indepBurglary) == '(Burglary _|_ MaryCalls | Alarm)' and
-        indepBurglary in alarmModel.local_independencies('MaryCalls').closure().get_assertions()), \
+        indepBurglary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()), \
         "Check 2: Burglary and MaryCalls are independent once conditional on Alarm"
 
-alarmModel.local_independencies('MaryCalls').closure()
+alarmModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and Burglary are conditionally independent on Alarm:
@@ -500,9 +575,9 @@ indepSynonymTable(model = alarmModel_brief, queryNode = 'M')
 # %% codecell
 
 # Case 1: Alarm = True
-EAJ: DiscreteFactor = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'True'})
-EAJ_1 = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'True', 'Earthquake':'True'})
-EAJ_2 = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'True', 'Earthquake':'False'})
+EAJ: DiscreteFactor = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'True'})
+EAJ_1 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'True', Earthquake.var:'True'})
+EAJ_2 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'True', Earthquake.var:'False'})
 
 assert (EAJ.values == EAJ_1.values).all() and (EAJ.values == EAJ_2.values).all(), "Check: there is independence between Earthquake and JohnCalls when Alarm state is observed (Alarm = True)"
 
@@ -519,9 +594,9 @@ print(EAJ)
 # $$
 # %% codecell
 # Case 2: Alarm = False
-EAJ: DiscreteFactor = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'False'})
-EAJ_1 = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'False', 'Earthquake':'True'})
-EAJ_2 = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'False', 'Earthquake':'False'})
+EAJ: DiscreteFactor = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False'})
+EAJ_1 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False', Earthquake.var:'True'})
+EAJ_2 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False', Earthquake.var:'False'})
 
 assert (EAJ.values == EAJ_1.values).all() and (EAJ.values == EAJ_2.values).all(), "Check: there is independence between Earthquake and JohnCalls when Alarm state is observed (Alarm = False)"
 
@@ -575,23 +650,23 @@ pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert alarmModel.is_active_trail(start = 'MaryCalls', end = 'Burglary',  observed = None)
-assert alarmModel.is_active_trail(start = 'MaryCalls', end = 'Earthquake', observed = None)
-assert alarmModel.is_active_trail(start = 'JohnCalls', end = 'Burglary', observed = None)
-assert alarmModel.is_active_trail(start = 'JohnCalls', end = 'Earthquake', observed = None)
+assert alarmModel.is_active_trail(start = MaryCalls.var, end = Burglary.var,  observed = None)
+assert alarmModel.is_active_trail(start = MaryCalls.var, end = Earthquake.var, observed = None)
+assert alarmModel.is_active_trail(start = JohnCalls.var, end = Burglary.var, observed = None)
+assert alarmModel.is_active_trail(start = JohnCalls.var, end = Earthquake.var, observed = None)
 
-showActiveTrails(model = alarmModel, variables = ['MaryCalls', 'Burglary'])
+showActiveTrails(model = alarmModel, variables = [MaryCalls.var, Burglary.var])
 
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities (example of $B \leftarrow A \leftarrow J$ trail)
-# ##### Evidential Reasoning For Evidential Model:
+# * **NOTE:** Evidential Reasoning For Evidential Model:
 # %% codecell
-JB: DiscreteFactor = elim.query(variables = ['Burglary'], evidence = None)
+JB: DiscreteFactor = elim.query(variables = [Burglary.var], evidence = None)
 print(JB)
 
 # %% codecell
-JB_1 = elim.query(variables = ['Burglary'], evidence = {'JohnCalls':'True'})
+JB_1 = elim.query(variables = [Burglary.var], evidence = {JohnCalls.var:'True'})
 print(JB_1)
 # %% markdown [markdown]
 # Below we see that when `JohnCalls` does not occur and no `Alarm` was observed, there is a lower probability of `Burglary`, compared to when neither `Alarm` nor `JohnCalls` were observed:
@@ -599,7 +674,7 @@ print(JB_1)
 # P(\text{Burglary} = \text{True} \; | \; \text{JohnCalls} = \text{False}) = 0.9937
 # $$
 # %% codecell
-JB_2 = elim.query(variables = ['Burglary'], evidence = {'JohnCalls':'False'})
+JB_2 = elim.query(variables = [Burglary.var], evidence = {JohnCalls.var:'False'})
 print(JB_2)
 # %% codecell
 assert (JB.values != JB_1.values).all() and (JB.values != JB_2.values).all(), "Check there is dependency between Burglary and JohnCalls, when Alarm state is unobserved "
@@ -607,13 +682,13 @@ assert (JB.values != JB_1.values).all() and (JB.values != JB_2.values).all(), "C
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities (example of $E \leftarrow A \leftarrow J$ trail)
-# ##### Evidential Reasoning For Evidential Model:
+# * **NOTE:** Evidential Reasoning For Evidential Model:
 # %% codecell
-JE: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = None)
+JE: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = None)
 print(JE)
 
 # %% codecell
-JE_1 = elim.query(variables = ['Earthquake'], evidence = {'JohnCalls':'True'})
+JE_1 = elim.query(variables = [Earthquake.var], evidence = {JohnCalls.var:'True'})
 print(JE_1)
 # %% markdown [markdown]
 # Below we see that when `JohnCalls` does not occur and no `Alarm` was not observed, there is a lower probability of `Earthquake`, compared to when John did call and `Alarm` was not observed:
@@ -621,7 +696,7 @@ print(JE_1)
 # P(\text{Earthquake} = \text{True} \; | \; \text{JohnCalls} = \text{False}) = 0.0019
 # $$
 # %% codecell
-JE_2 = elim.query(variables = ['Earthquake'], evidence = {'JohnCalls':'False'})
+JE_2 = elim.query(variables = [Earthquake.var], evidence = {JohnCalls.var:'False'})
 print(JE_2)
 # %% codecell
 assert (JE.values != JE_1.values).all() and (JE.values != JE_2.values).all(), "Check there is dependency between " \
@@ -656,30 +731,30 @@ assert (JE.values != JE_1.values).all() and (JE.values != JE_2.values).all(), "C
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert not alarmModel.is_active_trail(start = 'MaryCalls', end = 'Burglary', observed = 'Alarm')
-assert not alarmModel.is_active_trail(start = 'MaryCalls', end = 'Earthquake', observed = 'Alarm')
-assert not alarmModel.is_active_trail(start = 'JohnCalls', end = 'Burglary', observed = 'Alarm')
-assert not alarmModel.is_active_trail(start = 'JohnCalls', end = 'Earthquake', observed = 'Alarm')
+assert not alarmModel.is_active_trail(start = MaryCalls.var, end = Burglary.var, observed = Alarm.var)
+assert not alarmModel.is_active_trail(start = MaryCalls.var, end = Earthquake.var, observed = Alarm.var)
+assert not alarmModel.is_active_trail(start = JohnCalls.var, end = Burglary.var, observed = Alarm.var)
+assert not alarmModel.is_active_trail(start = JohnCalls.var, end = Earthquake.var, observed = Alarm.var)
 
-showActiveTrails(model = alarmModel, variables = ['JohnCalls', 'Earthquake'], observed = 'Alarm')
+showActiveTrails(model = alarmModel, variables = [JohnCalls.var, Earthquake.var], observed = Alarm.var)
 
 # %% markdown [markdown]
 # **Verify:** Using Independencies (just the $(B \; \bot \; M \; | \; A)$ independence)
 # %% codecell
-indepBurglary: IndependenceAssertion = Independencies(['Burglary', 'MaryCalls', ['Alarm']]).get_assertions()[0]; indepBurglary
+indepBurglary: IndependenceAssertion = Independencies([Burglary.var, MaryCalls.var, [Alarm.var]]).get_assertions()[0]; indepBurglary
 
-indepMary: IndependenceAssertion = Independencies(['MaryCalls', 'Burglary', ['Alarm']]).get_assertions()[0]; indepMary
+indepMary: IndependenceAssertion = Independencies([MaryCalls.var, Burglary.var, [Alarm.var]]).get_assertions()[0]; indepMary
 
 # Using the fact that closure returns independencies that are IMPLIED by the current independencies:
 assert (str(indepMary) == '(MaryCalls _|_ Burglary | Alarm)' and
-        indepMary in alarmModel.local_independencies('MaryCalls').closure().get_assertions()),  \
+        indepMary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
         "Check 1: Burglary and MaryCalls are independent once conditional on Alarm"
 
 assert (str(indepBurglary) == '(Burglary _|_ MaryCalls | Alarm)' and
-        indepBurglary in alarmModel.local_independencies('MaryCalls').closure().get_assertions()), \
+        indepBurglary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()), \
         "Check 2: Burglary and MaryCalls are independent once conditional on Alarm"
 
-alarmModel.local_independencies('MaryCalls').closure()
+alarmModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and Burglary are conditionally independent on Alarm:
@@ -702,9 +777,9 @@ indepSynonymTable(model = alarmModel_brief, queryNode = 'M')
 # %% codecell
 
 # Case 1: Alarm = True
-JAE: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = {'Alarm': 'True'})
-JAE_1 = elim.query(variables = ['Earthquake'], evidence = {'Alarm': 'True', 'JohnCalls':'True'})
-JAE_2 = elim.query(variables = ['Earthquake'], evidence = {'Alarm': 'True', 'JohnCalls':'False'})
+JAE: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = {Alarm.var: 'True'})
+JAE_1 = elim.query(variables = [Earthquake.var], evidence = {Alarm.var: 'True', JohnCalls.var:'True'})
+JAE_2 = elim.query(variables = [Earthquake.var], evidence = {Alarm.var: 'True', JohnCalls.var:'False'})
 
 assert (JAE.values == JAE_1.values).all() and (JAE.values == JAE_2.values).all(), "Check: there is independence between Earthquake and JohnCalls when Alarm state is observed (Alarm = True)"
 
@@ -721,9 +796,9 @@ print(JAE)
 # $$
 # %% codecell
 # Case 2: Alarm = False
-JAE: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = {'Alarm': 'False'})
-JAE_1 = elim.query(variables = ['Earthquake'], evidence = {'Alarm': 'False', 'JohnCalls':'True'})
-JAE_2 = elim.query(variables = ['Earthquake'], evidence = {'Alarm': 'False', 'JohnCalls':'False'})
+JAE: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = {Alarm.var: 'False'})
+JAE_1 = elim.query(variables = [Earthquake.var], evidence = {Alarm.var: 'False', JohnCalls.var:'True'})
+JAE_2 = elim.query(variables = [Earthquake.var], evidence = {Alarm.var: 'False', JohnCalls.var:'False'})
 
 assert (JAE.values == JAE_1.values).all() and (JAE.values == JAE_2.values).all(), "Check: there is independence between Earthquake and JohnCalls when Alarm state is observed (Alarm = False)"
 
@@ -755,16 +830,16 @@ pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert alarmModel.is_active_trail(start = 'JohnCalls', end = 'MaryCalls',  observed = None)
+assert alarmModel.is_active_trail(start = JohnCalls.var, end = MaryCalls.var,  observed = None)
 
-showActiveTrails(model = alarmModel, variables = ['JohnCalls', 'MaryCalls'])
+showActiveTrails(model = alarmModel, variables = [JohnCalls.var, MaryCalls.var])
 
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities
-# ##### Inter-Causal Reasoning For Common Cause Model:
+# * **NOTE:** Inter-Causal Reasoning For Common Cause Model:
 # %% codecell
-JM: DiscreteFactor = elim.query(variables = ['MaryCalls'], evidence = None)
+JM: DiscreteFactor = elim.query(variables = [MaryCalls.var], evidence = None)
 print(JM)
 # %% markdown [markdown]
 # Below we see that when `JohnCalls` and no `Alarm` was observed, there is a higher probability of `MaryCalls`, compared to when no `JohnCalls` nor `Alarm` were observed:
@@ -772,7 +847,7 @@ print(JM)
 # P(\text{MaryCalls} = \text{True} \; | \; \text{JohnCalls} = \text{True}) = 0.6975
 # $$
 # %% codecell
-JM_1 = elim.query(variables = ['MaryCalls'], evidence = {'JohnCalls':'True'})
+JM_1 = elim.query(variables = [MaryCalls.var], evidence = {JohnCalls.var:'True'})
 print(JM_1)
 # %% markdown [markdown]
 # Below we see that when `JohnCalls` does not occur and no `Alarm` was observed, there is a lower probability of `MaryCalls`, compared to when `JohnCalls` and `Alarm` was not observed:
@@ -780,7 +855,7 @@ print(JM_1)
 # P(\text{MaryCalls} = \text{True} \; | \; \text{JohnCalls} = \text{False}) = 0.4369
 # $$
 # %% codecell
-JM_2 = elim.query(variables = ['MaryCalls'], evidence = {'JohnCalls':'False'})
+JM_2 = elim.query(variables = [MaryCalls.var], evidence = {JohnCalls.var:'False'})
 print(JM_2)
 # %% codecell
 assert (JM.values != JM_1.values).all() and (JM.values != JM_2.values).all(), "Check: Marginal Dependence: there is dependency between MaryCalls and JohnCalls, when Alarm state is unobserved "
@@ -797,30 +872,30 @@ assert (JM.values != JM_1.values).all() and (JM.values != JM_2.values).all(), "C
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert not alarmModel.is_active_trail(start = 'JohnCalls', end = 'MaryCalls', observed = 'Alarm')
+assert not alarmModel.is_active_trail(start = JohnCalls.var, end = MaryCalls.var, observed = Alarm.var)
 
-showActiveTrails(model = alarmModel, variables = ['JohnCalls', 'MaryCalls'], observed = 'Alarm')
+showActiveTrails(model = alarmModel, variables = [JohnCalls.var, MaryCalls.var], observed = Alarm.var)
 
 # %% markdown [markdown]
 # **Verify:** Using Independencies
 # %% codecell
-indepJohn: IndependenceAssertion = Independencies(['JohnCalls', 'MaryCalls', ['Alarm']]).get_assertions()[0]; indepJohn
+indepJohn: IndependenceAssertion = Independencies([JohnCalls.var, MaryCalls.var, [Alarm.var]]).get_assertions()[0]; indepJohn
 
-indepMary: IndependenceAssertion = Independencies(['MaryCalls', 'JohnCalls', ['Alarm']]).get_assertions()[0]; indepMary
+indepMary: IndependenceAssertion = Independencies([MaryCalls.var, JohnCalls.var, [Alarm.var]]).get_assertions()[0]; indepMary
 
 
 # Using the fact that closure returns independencies that are IMPLIED by the current independencies:
 assert (str(indepMary) == '(MaryCalls _|_ JohnCalls | Alarm)' and
-        indepMary in alarmModel.local_independencies('MaryCalls').closure().get_assertions()),  \
+        indepMary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
         "Check 1: MaryCalls and JohnCalls are independent once conditional on Alarm"
 
-alarmModel.local_independencies('MaryCalls').closure()
+alarmModel.local_independencies(MaryCalls.var).closure()
 # %% codecell
 assert (str(indepJohn) == '(JohnCalls _|_ MaryCalls | Alarm)' and
-        indepJohn in alarmModel.local_independencies('JohnCalls').closure().get_assertions()), \
+        indepJohn in alarmModel.local_independencies(JohnCalls.var).closure().get_assertions()), \
         "Check 2: JohnCalls and MaryCalls are independent once conditional on Alarm"
 
-alarmModel.local_independencies('MaryCalls').closure()
+alarmModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and JohnCalls are conditionally independent on Alarm:
@@ -845,9 +920,9 @@ indepSynonymTable(model = alarmModel_brief, queryNode = 'J')
 # %% codecell
 
 # Case 1: Alarm = True
-JAM: DiscreteFactor = elim.query(variables = ['MaryCalls'], evidence = {'Alarm': 'True'})
-JAM_1 = elim.query(variables = ['MaryCalls'], evidence = {'Alarm': 'True', 'JohnCalls':'True'})
-JAM_2 = elim.query(variables = ['MaryCalls'], evidence = {'Alarm': 'True', 'JohnCalls':'False'})
+JAM: DiscreteFactor = elim.query(variables = [MaryCalls.var], evidence = {Alarm.var: 'True'})
+JAM_1 = elim.query(variables = [MaryCalls.var], evidence = {Alarm.var: 'True', JohnCalls.var:'True'})
+JAM_2 = elim.query(variables = [MaryCalls.var], evidence = {Alarm.var: 'True', JohnCalls.var:'False'})
 
 assert (JAM.values == JAM_1.values).all() and (JAM.values == JAM_2.values).all(), "Check: there is independence between MaryCalls and JohnCalls when Alarm state is observed (Alarm = True)"
 
@@ -865,9 +940,9 @@ print(JAM)
 # %% codecell
 
 # Case 2: Alarm = False
-JAM: DiscreteFactor = elim.query(variables = ['MaryCalls'], evidence = {'Alarm': 'False'})
-JAM_1 = elim.query(variables = ['MaryCalls'], evidence = {'Alarm': 'False', 'JohnCalls':'True'})
-JAM_2 = elim.query(variables = ['MaryCalls'], evidence = {'Alarm': 'False', 'JohnCalls':'False'})
+JAM: DiscreteFactor = elim.query(variables = [MaryCalls.var], evidence = {Alarm.var: 'False'})
+JAM_1 = elim.query(variables = [MaryCalls.var], evidence = {Alarm.var: 'False', JohnCalls.var:'True'})
+JAM_2 = elim.query(variables = [MaryCalls.var], evidence = {Alarm.var: 'False', JohnCalls.var:'False'})
 
 assert (JAM.values == JAM_1.values).all() and (JAM.values == JAM_2.values).all(), "Check: there is independence between MaryCalls and JohnCalls when Alarm state is observed (Alarm = False)"
 
@@ -875,9 +950,9 @@ print(JAM)
 
 # %% codecell
 # Symmetry:
-MAJ: DiscreteFactor = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'False'})
-MAJ_1 = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'False', 'MaryCalls':'True'})
-MAJ_2 = elim.query(variables = ['JohnCalls'], evidence = {'Alarm': 'False', 'MaryCalls':'False'})
+MAJ: DiscreteFactor = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False'})
+MAJ_1 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False', MaryCalls.var:'True'})
+MAJ_2 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False', MaryCalls.var:'False'})
 
 assert (MAJ.values == MAJ_1.values).all() and (MAJ.values == MAJ_2.values).all(), "Check: there is independence between MaryCalls and JohnCalls when Alarm state is observed (Alarm = False)"
 
@@ -907,23 +982,23 @@ pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert not alarmModel.is_active_trail(start = 'Burglary', end = 'Earthquake', observed = None)
+assert not alarmModel.is_active_trail(start = Burglary.var, end = Earthquake.var, observed = None)
 
-showActiveTrails(model = alarmModel, variables = ['Burglary', 'Earthquake'])
+showActiveTrails(model = alarmModel, variables = [Burglary.var, Earthquake.var])
 
 # %% markdown [markdown]
 # **Verify:** Using Independencies
 # %% codecell
-indepBurgEarth = Independencies(['Burglary', 'Earthquake'])
+indepBurgEarth = Independencies([Burglary.var, Earthquake.var])
 
-assert indepBurgEarth == alarmModel.local_independencies('Burglary'), 'Check 1: Burglary and Earthquake are marginally independent'
+assert indepBurgEarth == alarmModel.local_independencies(Burglary.var), 'Check 1: Burglary and Earthquake are marginally independent'
 
-assert indepBurgEarth == alarmModel.local_independencies('Earthquake'), 'Check 2: Burglary and Earthquake are marginally independent'
+assert indepBurgEarth == alarmModel.local_independencies(Earthquake.var), 'Check 2: Burglary and Earthquake are marginally independent'
 
 
 # See: MaryCalls and Burglary are marginally independent :
-print(indepSynonymTable(model = alarmModel, queryNode = 'Burglary'))
-print(indepSynonymTable(model = alarmModel, queryNode = 'Earthquake'))
+print(indepSynonymTable(model = alarmModel, queryNode = Burglary.var))
+print(indepSynonymTable(model = alarmModel, queryNode = Earthquake.var))
 
 
 # %% markdown [markdown]
@@ -940,9 +1015,9 @@ print(indepSynonymTable(model = alarmModel, queryNode = 'Earthquake'))
 # $$
 # %% codecell
 
-BE: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = None)
-BE_1 = elim.query(variables = ['Earthquake'], evidence = {'Burglary':'True'})
-BE_2 = elim.query(variables = ['Earthquake'], evidence = {'Burglary': 'False'})
+BE: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = None)
+BE_1 = elim.query(variables = [Earthquake.var], evidence = {Burglary.var:'True'})
+BE_2 = elim.query(variables = [Earthquake.var], evidence = {Burglary.var: 'False'})
 
 # Using np.allclose instead of exact equals sign (there must be some numerical inconsistency ... otherwise they wouldn't be different at all! BAE.values[0] = 0.0019999999 while BAE_1.values[0] = 0.002)
 assert np.allclose(BE.values, BE_1.values) and np.allclose(BE.values, BE_2.values), "Check: there is marginal independence between Earthquake and Burglary when Alarm state is NOT observed"
@@ -962,21 +1037,21 @@ print(BE)
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert alarmModel.is_active_trail(start = 'Burglary', end = 'Earthquake',  observed = 'Alarm')
+assert alarmModel.is_active_trail(start = Burglary.var, end = Earthquake.var,  observed = Alarm.var)
 
-showActiveTrails(model = alarmModel, variables = ['Burglary', 'Earthquake'], observed = 'Alarm')
+showActiveTrails(model = alarmModel, variables = [Burglary.var, Earthquake.var], observed = Alarm.var)
 
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities
-# ##### Inter-Causal Reasoning For Common Evidence Model:
+# * **NOTE:** Inter-Causal Reasoning For Common Evidence Model:
 # %% codecell
 
 # Case 1: Alarm = True
-BAE: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = {'Alarm': 'True'})
+BAE: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = {Alarm.var: 'True'})
 print(BAE)
 # %% codecell
-BAE_1: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = {'Burglary':'True', 'Alarm': 'True'})
+BAE_1: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = {Burglary.var:'True', Alarm.var: 'True'})
 print(BAE_1)
 # %% markdown [markdown]
 # Below we see that when there was no`Burglary` (cause) and `Alarm` rang, there is a higher probability of `Earthquake` (other cause) compared to when there was a `Burglary` and `Alarm` rang:
@@ -985,7 +1060,7 @@ print(BAE_1)
 # $$
 # * NOTE: This is like in page 41 of Korb book (inverse of "explaining away")
 # %% codecell
-BAE_2: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = {'Burglary':'False', 'Alarm': 'True'})
+BAE_2: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = {Burglary.var:'False', Alarm.var: 'True'})
 print(BAE_2)
 
 # %% codecell
@@ -998,7 +1073,7 @@ assert (BAE_2.values != BAE.values).all(), 'Check: there is dependency between E
 # $$
 # %% codecell
 # Case 2: Alarm = False
-BAE: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = {'Alarm': 'False'})
+BAE: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = {Alarm.var: 'False'})
 print(BAE)
 # %% markdown [markdown]
 # The probability below is:
@@ -1006,7 +1081,7 @@ print(BAE)
 # P(\text{Earthquake} = \text{True} \; | \; \text{Burglary} = \text{True} \; \cap \; \text{Alarm} = \text{False}) = 0.0017
 # $$
 # %% codecell
-BAE_1: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = {'Burglary':'True', 'Alarm': 'False'})
+BAE_1: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = {Burglary.var:'True', Alarm.var: 'False'})
 print(BAE_1)
 # %% markdown [markdown]
 # Below we see that when there was no `Burglary` (cause) and `Alarm` did not ring, there is a lower probability of `Earthquake` (other cause) compared to when there was a `Burglary` and `Alarm` didn't ring:
@@ -1014,7 +1089,7 @@ print(BAE_1)
 # P(\text{Earthquake} = \text{True} \; | \; \text{Burglary} = \text{False} \; \cap \; \text{Alarm} = \text{False}) = 0.0014
 # $$
 # %% codecell
-BAE_2: DiscreteFactor = elim.query(variables = ['Earthquake'], evidence = {'Burglary':'False', 'Alarm': 'False'})
+BAE_2: DiscreteFactor = elim.query(variables = [Earthquake.var], evidence = {Burglary.var:'False', Alarm.var: 'False'})
 print(BAE_2)
 # %% codecell
 assert (BAE_2.values != BAE.values).all(), 'Check: there is dependency between Earthquake and Burglary when Alarm state is observed (False)'
