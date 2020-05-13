@@ -1,7 +1,7 @@
 # %% markdown [markdown]
 # [Source for tutorial](https://github.com/pgmpy/pgmpy/blob/dev/examples/Alarm.ipynb)
 #
-# 
+#
 # # Alarm Bayesian Network
 # Creating the Alarm Bayesian network using pgmpy and doing some simple queries (mentioned in Bayesian Artificial Intelligence, Section 2.5.1: )
 
@@ -64,8 +64,34 @@ from src.utils.NetworkUtil import *
 # **Example statement:** You have a new burglar alarm installed. It reliably detects burglary, but also responds to minor earthquakes. Two neighbors, John and Mary, promise to call the police when they hear the alarm. John always calls when he hears the alarm, but sometimes confuses the alarm with the phone ringing and calls then also. On the other hand, Mary likes loud music and sometimes doesn't hear the alarm. Given evidence about who has and hasn't called, you'd like to estimate the probability of a burglary alarm (from Pearl (1988)).
 #
 # %% codecell
+
+import collections
+
+# Creating some names for the random variables (nodes) in the graph, to clarify meaning.
+
+# Create named tuple class with names "Names" and "Objects"
+RandomVariable = collections.namedtuple("RandomVariable", ["variable", "states"])
+
+
+Earthquake = RandomVariable(variable = "Earthquake", states = ['True', 'False'])
+Earthquake.states
+
+Burglary = collections.namedtuple("Burglary", ["variable", "states"])
+Burglary = collections.namedtuple("Burglary", ["variable", "states"])
+Burglary = collections.namedtuple("Burglary", ["variable", "states"])
+
+
+Burglary: Dict[Variable, List[State]] = {'Burglary': ['True', 'False']}
+Earthquake: Dict[Variable, List[State]] = {'Earthquake': ['True', 'False']}
+Alarm: Dict[Variable, List[State]] = {'Alarm': ['True', 'False']}
+JohnCalls: Dict[Variable, List[State]] = {'JohnCalls': ['True', 'False']}
+MaryCalls: Dict[Variable, List[State]] = {'MaryCalls': ['True', 'False']}
+
+
+list(Burglary.keys())[0]
+
 # Defining the network structure:
-alarmModel: BayesianModel = BayesianModel([('Burglary', 'Alarm'),
+alarmModel: BayesianModel = BayesianModel([(Burglary.keys(), 'Alarm'),
                                            ('Earthquake', 'Alarm'),
                                            ('Alarm', 'JohnCalls'),
                                            ('Alarm', 'MaryCalls')])
@@ -283,23 +309,23 @@ print(alarmJPD)
 
 # %% markdown [markdown]
 # ## 4/ Inference in Bayesian Alarm Model
-# So far we talked about represented Bayesian Networks.
 #
 # Now let us do inference in a  Bayesian model and predict values using this model over new data points for ML tasks.
 #
 # ### 1. Causal Reasoning in the Alarm Model
 # For a causal model $A \rightarrow B \rightarrow C$, there are two cases:
-#   * **Marginal Dependence:** ($B$ unknown): When $B$ is unknown / unobserved, there is an active trail between $A$
-#   and $C$, meaning the probability of $A$ can influence probability of $C$ (and vice versa) when information about $B$'s state is unknown.
-#   * **Conditional Independence:** ($B$ fixed): When $B$ is fixed, there is NO active trail between $A$ and $C$,
-#   so they are independent. The probability of $A$ won't influence probability of $C$ (and vice versa) when $B$'s state is observed.
+#   * **Marginal Dependence:** ($B$ unknown): When $B$ is unknown / unobserved, there is an active trail between $A$ and $C$, meaning the probability of $A$ can influence probability of $C$ (and vice versa).
+#   * **Conditional Independence:** ($B$ fixed): When $B$ is fixed, there is NO active trail between $A$ and $C$, so they are independent, which means the probability of $A$ won't influence probability of $C$ (and vice versa).
 
 
 # %% codecell
 pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
-# $\color{MediumVioletRed}{\text{Case 1: Marginal Dependence (for Causal Model)}}$
+# ### Case 1: Marginal Dependence (for Causal Model)
+# For a causal model $A \rightarrow B \rightarrow C$, when the state of the middle node $B$ is unobserved, then an active trail is created between the nodes, namely the active trail is $A \rightarrow B \rightarrow C$. Information can now flow from node $A$ to node $C$ via node $B$. This implies there is a dependency between nodes $A$ and $C$, so the probability of $A$ taking on any of its states can influence the probability of $C$ taking on any of its states. This is called **marginal dependence** We can write this as: $P(A | C) \ne P(A)$
 #
+# $\color{red}{\text{TODO}}$ left off here trying to refactor the text (continue from sublime notes pg 35 Korb and pg 336 Bayesiabook)
+# %% markdown
 # $$
 # \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longrightarrow \text{Alarm} \longrightarrow \text{MaryCalls}}
 # $$
@@ -404,7 +430,7 @@ assert (EM.values != EM_1.values).all() and (EM.values != EM_2.values).all(), "C
 
 
 # %% markdown [markdown]
-# $\color{MediumVioletRed}{\text{Case 2: Conditional Independence (for Causal Model)}}$
+# ### Case 2: Conditional Independence (for Causal Model)
 #
 # $$
 # \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
@@ -522,7 +548,7 @@ print(EAJ)
 # %% codecell
 pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
-# $\color{MediumVioletRed}{\text{Case 1: Marginal Dependence (for Evidential Model)}}$
+# ### Case 1: Marginal Dependence (for Evidential Model)
 #
 # $$
 # \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longleftarrow \text{Alarm} \longleftarrow
@@ -606,7 +632,7 @@ assert (JE.values != JE_1.values).all() and (JE.values != JE_2.values).all(), "C
 
 
 # %% markdown [markdown]
-# $\color{MediumVioletRed}{\text{Case 2: Conditional Independence (for Evidential Model)}}$
+# ### Case 2: Conditional Independence (for Evidential Model)
 #
 # $$
 # \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
@@ -718,7 +744,7 @@ print(JAE)
 # %% codecell
 pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
-# $\color{MediumVioletRed}{\text{Case 1: Marginal Dependence (for Evidential Model)}}$
+# ### Case 1: Marginal Dependence (for Evidential Model)
 #
 # $$
 # \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{JohnCalls} \longleftarrow \text{Alarm} \longleftarrow \text{MaryCalls}}
@@ -761,7 +787,7 @@ assert (JM.values != JM_1.values).all() and (JM.values != JM_2.values).all(), "C
 
 
 # %% markdown [markdown]
-# $\color{MediumVioletRed}{\text{Case 2: Conditional Independence (for Common Cause Model)}}$
+# ### Case 2: Conditional Independence (for Common Cause Model)
 #
 # $$
 # \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{JohnCalls} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
@@ -870,7 +896,7 @@ print(MAJ)
 # %% codecell
 pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
-# $\color{MediumVioletRed}{\text{Case 1: Marginal Independence (for Common Evidence Model)}}$
+# ### Case 1: Marginal Independence (for Common Evidence Model)
 #
 # $$
 # \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{Earthquake} \; | \; \text{Alarm}}
@@ -926,7 +952,7 @@ print(BE)
 
 
 # %% markdown [markdown]
-# $\color{MediumVioletRed}{\text{Case 2: Conditional Dependence (for Common Evidence Model)}}$
+# ### Case 2: Conditional Dependence (for Common Evidence Model)
 
 # $$
 # \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longleftarrow \text{Alarm} \longrightarrow \text{Earthquake}}
