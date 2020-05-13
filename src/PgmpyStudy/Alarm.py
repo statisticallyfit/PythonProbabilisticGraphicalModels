@@ -319,13 +319,13 @@ assert not alarmModel_brief.is_imap(JPD = alarmJPD)
 # $$
 # Now in this case for the `alarmModel`:
 # $$
-# \begin{align}
+# \begin{array}{ll}
 # P(J, M, A, E, B)
 # &= P(J \; | \; M, A, E, B) \cdot P(J, M, A, E, B) \\
 # &= P(J \; | \; M, A, E, B) \cdot {\color{cyan} (} P(M \; | \; A,E,B) \cdot P(A,E,B) {\color{cyan} )} \\
 # &=  P(J \; | \; M, A, E, B) \cdot  P(M \; | \; A,E,B) \cdot {\color{cyan} (}P(A \; | \; E,B) \cdot P(E, B){\color{cyan} )} \\
 # &= P(J \; | \; M, A, E, B) \cdot  P(M \; | \; A,E,B) \cdot P(A \; | \; E,B) \cdot {\color{cyan} (}P(E \; | \; B) \cdot P(B){\color{cyan} )} \\
-# \end{align}
+# \end{array}
 # $$
 # %% codecell
 probChainRule(['J','M','A','E','B'])
@@ -356,7 +356,7 @@ pgmpyToGraph(alarmModel)
 #
 # $\color{red}{\text{TODO}}$ left off here trying to refactor the text (continue from sublime notes pg 35 Korb and pg 336 Bayesiabook)
 # $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longrightarrow \text{Alarm} \longrightarrow \text{MaryCalls}}
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longrightarrow \text{Alarm} \longrightarrow \text{MaryCalls}}
 # $$
 #
 # Given that the state of `Alarm` is unobserved, we can state the following equivalent statements:
@@ -506,26 +506,39 @@ assert (EM.values != EM_1.values).all() and (EM.values != EM_2.values).all(), "C
 
 # %% markdown [markdown]
 # ### Case 2: Conditional Independence (for Causal Model)
+# For a causal model $A \rightarrow B \rightarrow C$, when the state of the middle node $B$ is unobserved, then an active trail is created between the nodes, namely the active trail is $A \rightarrow B \rightarrow C$. Information can now flow from node $A$ to node $C$ via node $B$. This implies there is a dependency between nodes $A$ and $C$, so the probability of $A$ taking on any of its states can influence the probability of $C$ taking on any of its states. This is called **marginal dependence** We can write this as: $P(A | C) \ne P(A)$ or even as $P(C | A) \ne P(C)$.
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
 # $$
-# When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `Burglary` and `MaryCalls`. In other words, `Burglary` and `MaryCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `Burglary` won't influence probability of `MaryCalls` (and vice versa) when `Alarm`'s state is observed.
+# Given that `Alarm`'s state is fixed / observed, we can state the following equivalent statements:
+# * there is NO active trail between `Burglary` and `MaryCalls`.
+# * `Burglary` and `MaryCalls` are locally independent.
+# * the probability of `Burglary` won't influence probability of `MaryCalls` (and vice versa).
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{JohnCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{JohnCalls} \; | \; \text{Alarm}}
 # $$
-# When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `Burglary` and `JohnCalls`. In other words, `Burglary` and `JohnCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `Burglary` won't influence probability of `JohnCalls` (and vice versa) when `Alarm`'s state is observed.
+# Given that `Alarm`'s state is fixed / observed, we can state the following equivalent statements:
+# * there is NO active trail between `Burglary` and `JohnCalls`.
+# * `Burglary` and `JohnCalls` are locally independent.
+# * the probability of `Burglary` won't influence probability of `JohnCalls` (and vice versa).
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Earthquake} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Earthquake} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
 # $$
-# When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `Earthquake` and `MaryCalls`. In other words, `Earthquake` and `MaryCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `Earthquake` won't influence probability of `MaryCalls` (and vice versa) when `Alarm`'s state is observed.
+# Given that `Alarm`'s state is fixed / observed, we can state the following equivalent statements:
+# * there is NO active trail between `Earthquake` and `MaryCalls`.
+# * `Earthquake` and `MaryCalls` are locally independent.
+# * the probability of `Earthquake` won't influence probability of `MaryCalls` (and vice versa).
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Earthquake} \; \bot \; \text{JohnCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Earthquake} \; \bot \; \text{JohnCalls} \; | \; \text{Alarm}}
 # $$
-# When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `Earthquake` and `JohnCalls`. In other words, `Earthquake` and `JohnCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `Earthquake` won't influence probability of `JohnCalls` (and vice versa) when `Alarm`'s state is observed.
+# Given that `Alarm`'s state is fixed / observed, we can state the following equivalent statements:
+# * there is NO active trail between `Earthquake` and `JohnCalls`.
+# * `Earthquake` and `JohnCalls` are locally independent.
+# * the probability of `Earthquake` won't influence probability of `JohnCalls` (and vice versa).
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
@@ -562,16 +575,6 @@ indepSynonymTable(model = alarmModel_brief, queryNode = 'M')
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities Method (just the $(E \; \bot \; J \; | \; A)$ independence)
-# %% markdown [markdown]
-# The probability below is:
-# $$
-# \begin{align}
-# P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{True})
-# &= P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{True} \; \cap \; \text{Earthquake} = \text{True})  \\
-# &= P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{True} \; \cap \; \text{Earthquake} = \text{False}) \\
-# &= 0.90
-# \end{align}
-# $$
 # %% codecell
 
 # Case 1: Alarm = True
@@ -579,31 +582,63 @@ EAJ: DiscreteFactor = elim.query(variables = [JohnCalls.var], evidence = {Alarm.
 EAJ_1 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'True', Earthquake.var:'True'})
 EAJ_2 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'True', Earthquake.var:'False'})
 
-assert (EAJ.values == EAJ_1.values).all() and (EAJ.values == EAJ_2.values).all(), "Check: there is independence between Earthquake and JohnCalls when Alarm state is observed (Alarm = True)"
-
 print(EAJ)
+
 # %% markdown [markdown]
-# The probability below is:
+# Through the above steps, we observed some probabilities conditional on some states:
 # $$
-# \begin{align}
+# \begin{array}{ll}
+# P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{True})
+# &= P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{True} \; \cap \; \text{Earthquake} = \text{True})  \\
+# &= P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{True} \; \cap \; \text{Earthquake} = \text{False}) \\
+# &= 0.90
+# \end{array}
+# $$
+# From probability theory, we know that two random variables $A$ and $B$ are independent if and only if $P(A) = P(A \; | \; B)$ (by definition this statement holds for all the states that the random variables $A$ and $B$ can take on).
+#
+# Therefore, the fact that the above probabilities ARE the same implies the random variables `JohnCalls` and `Earthquake` are independent when having observed `Alarm = True`. This is expressed in probability notation as follows:
+# $$
+# P(\text{JohnCalls} \; | \; \text{Alarm = True}) = P(\text{JohnCalls} \; | \; \text{Earthquake} \cap \text{Alarm = True})
+# $$
+
+# Using pgmpy, we can access the previously calculated probabilites using the `.values` accessor to assert the probabilities ARE equal, which asserts that the random variables `JohnCalls` and `Earthquake` are independent (given `Alarm = True`):
+
+# %% codecell
+
+assert (EAJ.values == EAJ_1.values).all() and (EAJ.values == EAJ_2.values).all(), "Check: random variables Earthquake and JohnCalls are independent when Alarm state is observed (e.g. Alarm = True)"
+
+
+
+# %% markdown [markdown]
+# Through the above steps, we observed some probabilities conditional on some states:
+# $$
+# \begin{array}{ll}
 # P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{False})
 # &= P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{False} \; \cap \; \text{Earthquake} = \text{True})  \\
 # &= P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{False} \; \cap \; \text{Earthquake} = \text{False}) \\
 # &= 0.05
-# \end{align}
+# \end{array}
 # $$
+# From probability theory, we know that two random variables $A$ and $B$ are independent if and only if $P(A) = P(A \; | \; B)$ (by definition this statement holds for all the states that the random variables $A$ and $B$ can take on).
+#
+# Therefore, the fact that the above probabilities ARE the same implies the random variables `JohnCalls` and `Earthquake` are independent when having observed `Alarm = False`. This is expressed in probability notation as follows:
+# $$
+# P(\text{JohnCalls} \; | \; \text{Alarm = False}) = P(\text{JohnCalls} \; | \; \text{Earthquake} \cap \text{Alarm = False})
+# $$
+
+# Using pgmpy, we can access the previously calculated probabilites using the `.values` accessor to assert the probabilities ARE equal, which asserts that the random variables `JohnCalls` and `Earthquake` are independent (given `Alarm = False`)
 # %% codecell
 # Case 2: Alarm = False
 EAJ: DiscreteFactor = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False'})
 EAJ_1 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False', Earthquake.var:'True'})
 EAJ_2 = elim.query(variables = [JohnCalls.var], evidence = {Alarm.var: 'False', Earthquake.var:'False'})
 
-assert (EAJ.values == EAJ_1.values).all() and (EAJ.values == EAJ_2.values).all(), "Check: there is independence between Earthquake and JohnCalls when Alarm state is observed (Alarm = False)"
+assert (EAJ.values == EAJ_1.values).all() and (EAJ.values == EAJ_2.values).all(), "Check: Earthquake and JohnCalls are independent, given that Alarm state is observed (e.g. Alarm = False)"
 
 print(EAJ)
 
 # %% markdown [markdown]
-# Comment: above we see that the probability of John calling when there is an `Alarm` is higher than when there is no `Alarm` ringing, because $P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{False}) = 0.05$ while $P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{True}) = 0.90$.
+# Comment: above we see that the probability of John calling when there is an `Alarm` is higher ($P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{True}) = 0.90$) than when there is no `Alarm` ringing ($P(\text{JohnCalls} = \text{True} \; | \; \text{Alarm} = \text{False}) = 0.05$).
 
 
 
@@ -626,7 +661,7 @@ pgmpyToGraph(alarmModel)
 # ### Case 1: Marginal Dependence (for Evidential Model)
 #
 # $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longleftarrow \text{Alarm} \longleftarrow
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longleftarrow \text{Alarm} \longleftarrow
 # \text{MaryCalls}}
 # $$
 #
@@ -634,17 +669,17 @@ pgmpyToGraph(alarmModel)
 #
 #
 # $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longleftarrow \text{Alarm} \longleftarrow \text{JohnCalls}}
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longleftarrow \text{Alarm} \longleftarrow \text{JohnCalls}}
 # $$
 # When `Alarm`'s state is uknown, there is an active trail or dependency between `Burglary` and `JohnCalls`, so the probability of `Burglary` can influence the probability of `JohnCalls` (and vice versa) when `Alarm`'s state is unknown.
 #
 # $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longleftarrow \text{Alarm} \longleftarrow \text{MaryCalls}}
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longleftarrow \text{Alarm} \longleftarrow \text{MaryCalls}}
 # $$
 # When `Alarm`'s state is uknown, there is an active trail or dependency between `Earthquake` and `MaryCalls`, so the probability of `Earthquake` can influence the probability of `MaryCalls` (and vice versa) when `Alarm`'s state is unknown.
 #
 # $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longleftarrow \text{Alarm} \longleftarrow \text{JohnCalls}}
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longleftarrow \text{Alarm} \longleftarrow \text{JohnCalls}}
 # $$
 # When `Alarm`'s state is uknown, there is an active trail or dependency between `Earthquake` and `JohnCalls`, so the probability of `Earthquake` can influence the probability of `JohnCalls` (and vice versa) when `Alarm`'s state is unknown.
 # %% markdown [markdown]
@@ -710,22 +745,22 @@ assert (JE.values != JE_1.values).all() and (JE.values != JE_2.values).all(), "C
 # ### Case 2: Conditional Independence (for Evidential Model)
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
 # $$
 # When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `Burglary` and `MaryCalls`. In other words, `Burglary` and `MaryCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `Burglary` won't influence probability of `MaryCalls` (and vice versa) when `Alarm`'s state is observed.
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{JohnCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{JohnCalls} \; | \; \text{Alarm}}
 # $$
 # When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `Burglary` and `JohnCalls`. In other words, `Burglary` and `JohnCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `Burglary` won't influence probability of `JohnCalls` (and vice versa) when `Alarm`'s state is observed.
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Earthquake} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Earthquake} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
 # $$
 # When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `Earthquake` and `MaryCalls`. In other words, `Earthquake` and `MaryCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `Earthquake` won't influence probability of `MaryCalls` (and vice versa) when `Alarm`'s state is observed.
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Earthquake} \; \bot \; \text{JohnCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Earthquake} \; \bot \; \text{JohnCalls} \; | \; \text{Alarm}}
 # $$
 # When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `Earthquake` and `JohnCalls`. In other words, `Earthquake` and `JohnCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `Earthquake` won't influence probability of `JohnCalls` (and vice versa) when `Alarm`'s state is observed.
 # %% markdown [markdown]
@@ -767,12 +802,12 @@ indepSynonymTable(model = alarmModel_brief, queryNode = 'M')
 # %% markdown [markdown]
 # The probability below is:
 # $$
-# \begin{align}
+# \begin{array}{ll}
 # P(\text{Earthquake} = \text{True} \; | \; \text{Alarm} = \text{True})
 # &= P(\text{Earthquake} = \text{True} \; | \; \text{Alarm} = \text{True} \; \cap \; \text{JohnCalls} = \text{True})  \\
 # &= P(\text{Earthquake} = \text{True} \; | \; \text{Alarm} = \text{True} \; \cap \; \text{JohnCalls} = \text{False}) \\
 # &= 0.02
-# \end{align}
+# \end{array}
 # $$
 # %% codecell
 
@@ -787,12 +822,12 @@ print(JAE)
 # %% markdown [markdown]
 # The probability below is:
 # $$
-# \begin{align}
+# \begin{array}{ll}
 # P(\text{Earthquake} = \text{True} \; | \; \text{Alarm} = \text{False})
 # &= P(\text{Earthquake} = \text{True} \; | \; \text{Alarm} = \text{False} \; \cap \; \text{JohnCalls} = \text{True})  \\
 # &= P(\text{Earthquake} = \text{True} \; | \; \text{Alarm} = \text{False} \; \cap \; \text{JohnCalls} = \text{False}) \\
 # &= 0.0017
-# \end{align}
+# \end{array}
 # $$
 # %% codecell
 # Case 2: Alarm = False
@@ -822,7 +857,7 @@ pgmpyToGraph(alarmModel)
 # ### Case 1: Marginal Dependence (for Evidential Model)
 #
 # $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{JohnCalls} \longleftarrow \text{Alarm} \longleftarrow \text{MaryCalls}}
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{JohnCalls} \longleftarrow \text{Alarm} \longleftarrow \text{MaryCalls}}
 # $$
 #
 # When the parent node `Alarm` is unknown / unobserved, there IS an active trail between `JohnCalls` and `MaryCalls`. In other words, there is a dependence between `JohnCalls` and `MaryCalls` when `Alarm` is unobserved. This means the probability of `JohnCalls` can influence probability of `MaryCalls` (and vice versa) when information about `Alarm`'s state is unknown.
@@ -865,7 +900,7 @@ assert (JM.values != JM_1.values).all() and (JM.values != JM_2.values).all(), "C
 # ### Case 2: Conditional Independence (for Common Cause Model)
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{JohnCalls} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{JohnCalls} \; \bot \; \text{MaryCalls} \; | \; \text{Alarm}}
 # $$
 # When the `Alarm`'s state is known (fixed / observed), then there is NO active trail between `JohnCalls` and `MaryCalls`. In other words, `JohnCalls` and `MaryCalls` are locally independent when `Alarm`'s state is observed. This means the probability of `JohnCalls` won't influence probability of `MaryCalls` (and vice versa) when `Alarm`'s state is observed.
 #
@@ -910,12 +945,12 @@ indepSynonymTable(model = alarmModel_brief, queryNode = 'J')
 # %% markdown [markdown]
 # The probability below is:
 # $$
-# \begin{align}
+# \begin{array}{ll}
 # P(\text{MaryCalls} = \text{True} \; | \; \text{Alarm} = \text{True})
 # &= P(\text{MaryCalls} = \text{True} \; | \; \text{Alarm} = \text{True} \; \cap \; \text{JohnCalls} = \text{True})  \\
 # &= P(\text{MaryCalls} = \text{True} \; | \; \text{Alarm} = \text{True} \; \cap \; \text{JohnCalls} = \text{False}) \\
 # &= 0.7
-# \end{align}
+# \end{array}
 # $$
 # %% codecell
 
@@ -930,12 +965,12 @@ print(JAM)
 # %% markdown [markdown]
 # The probability below is:
 # $$
-# \begin{align}
+# \begin{array}{ll}
 # P(\text{MaryCalls} = \text{True} \; | \; \text{Alarm} = \text{False})
 # &= P(\text{MaryCalls} = \text{True} \; | \; \text{Alarm} = \text{False} \; \cap \; \text{JohnCalls} = \text{True})  \\
 # &= P(\text{MaryCalls} = \text{True} \; | \; \text{Alarm} = \text{False} \; \cap \; \text{JohnCalls} = \text{False}) \\
 # &= 0.7
-# \end{align}
+# \end{array}
 # $$
 # %% codecell
 
@@ -974,7 +1009,7 @@ pgmpyToGraph(alarmModel)
 # ### Case 1: Marginal Independence (for Common Evidence Model)
 #
 # $$
-# \color{DeepSkyBlue}{ \text{Alarm (fixed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{Earthquake} \; | \; \text{Alarm}}
+# \color{DeepSkyBlue}{ \text{Alarm (observed): }\;\;\;\;\;\;\;\; \text{Burglary} \; \bot \; \text{Earthquake} \; | \; \text{Alarm}}
 # $$
 #
 # When the effect node `Alarm` is unknown / unobserved, there is NO an active trail between `Burglary` and `Earthquake`. In other words, there is a local marginal independence between `Burglary` and `Earthquake` when `Alarm` is unobserved. This means the probability of `Burglary` won't influence the probability of `Earthquake` (and vice versa) when `Alarm`'s state is unknown.
@@ -1006,12 +1041,12 @@ print(indepSynonymTable(model = alarmModel, queryNode = Earthquake.var))
 # %% markdown [markdown]
 # The probability below is:
 # $$
-# \begin{align}
+# \begin{array}{ll}
 # P(\text{Earthquake} = \text{True})
 # &= P(\text{Earthquake} = \text{True} \; | \; \text{Burglary} = \text{True})  \\
 # &= P(\text{Earthquake} = \text{True} \; | \; \text{Burglary} = \text{False}) \\
 # &= 0.7
-# \end{align}
+# \end{array}
 # $$
 # %% codecell
 
@@ -1030,7 +1065,7 @@ print(BE)
 # ### Case 2: Conditional Dependence (for Common Evidence Model)
 
 # $$
-# \color{Green}{ \text{Alarm (unknown): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longleftarrow \text{Alarm} \longrightarrow \text{Earthquake}}
+# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longleftarrow \text{Alarm} \longrightarrow \text{Earthquake}}
 # $$
 # When the `Alarm`'s state is known (fixed / observed), then there IS an active trail between `Burglary` and `Earthquake`. In other words, `Burglary` and `Earthquake` are dependent when `Alarm`'s state is observed. This means the probability of `Burglary` can influence probability of `Earthquake` (and vice versa) when `Alarm`'s state is observed.
 
