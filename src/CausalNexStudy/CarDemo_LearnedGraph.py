@@ -10,12 +10,12 @@ from typing import *
 
 os.getcwd()
 # Setting the baseline:
-os.chdir('/development/projects/statisticallyfit/github/learningmathstat/PythonNeuralNetNLP')
+os.chdir('/development/projects/statisticallyfit/github/learningmathstat/PythonProbabilisticGraphicalModels')
 
 
 curPath: str = os.getcwd() + "/src/CausalNexStudy/"
 
-dataPath: str = curPath + "_data/"
+dataPath: str = os.getcwd() + "/_data/"
 
 
 print("curPath = ", curPath, "\n")

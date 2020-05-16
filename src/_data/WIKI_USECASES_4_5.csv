@@ -1,0 +1,35 @@
+Time,Training Level,Exertion Level,Experience Level,Work Capacity,Process Type,Uses Op,Injury Type,Absenteeism Level
+1,Low,Low,Low,High,Engine-Mount,Forklift,Fall-Gtm,High
+2,Low,Low,Low,Medium,Engine-Mount,Forklift,Contact-Contusion,High
+3,Low,Low,Low,High,Engine-Mount,Forklift,Fall-Gtm,High
+4,Medium,Medium,Medium,High,Engine-Mount,Forklift,Contact-Contusion,Medium
+5,Medium,Medium,Medium,Medium,Engine-Mount,Forklift,Contact-Contusion,High
+6,Low,Low,Low,Medium,Engine-Mount,Forklift,Chemical-Burn,Low
+7,Low,Low,Low,High,Engine-Mount,Forklift,Chemical-Burn,Low
+8,Low,Low,Low,High,Engine-Mount,Forklift,Chemical-Burn,Low
+9,Low,Low,Low,High,Engine-Mount,Forklift,Chemical-Burn,Low
+10,Low,Low,Low,Medium,Engine-Mount,Forklift,Chemical-Burn,Low
+11,Medium,Medium,Medium,High,Engine-Wiring,Power-Gun,Electrical-Shock,High
+12,Medium,Medium,Medium,High,Engine-Wiring,Power-Gun,Electrical-Shock,High
+13,Low,Low,Low,Medium,Engine-Wiring,Power-Gun,Electrical-Shock,High
+14,Medium,Medium,Medium,Medium,Engine-Wiring,Power-Gun,Electrical-Shock,High
+15,High,High,High,High,Engine-Wiring,Power-Gun,Electrical-Shock,High
+16,High,High,High,High,Engine-Wiring,Power-Gun,Electrical-Shock,High
+17,Medium,Medium,Medium,Medium,Engine-Wiring,Power-Gun,Electrical-Shock,High
+18,High,High,High,Medium,Engine-Wiring,Power-Gun,Fall-Gtm,Low
+19,Medium,Medium,Medium,Low,Engine-Wiring,Power-Gun,Fall-Gtm,Low
+20,Medium,Medium,Medium,Low,Engine-Wiring,Power-Gun,Fall-Gtm,Low
+21,Medium,Medium,Medium,Low,Engine-Wiring,Power-Gun,Fall-Gtm,Low
+22,High,High,High,Low,Engine-Wiring,Power-Gun,Fall-Gtm,Low
+23,High,High,High,Low,Engine-Wiring,Power-Gun,Fall-Gtm,Low
+24,High,High,High,Medium,Oil-Fill,Oil,Chemical-Burn,High
+25,High,High,High,Low,Oil-Fill,Oil,Chemical-Burn,High
+26,Medium,Medium,Medium,Medium,Oil-Fill,Oil,Chemical-Burn,High
+27,High,High,High,Low,Oil-Fill,Oil,Chemical-Burn,High
+28,High,High,High,Low,Oil-Fill,Front-Right-Door,Chemical-Burn,Medium
+29,High,High,High,Low,Oil-Fill,Front-Right-Door,Chemical-Burn,Medium
+30,High ,High ,High ,Low,Oil-Fill,Front-Right-Door,Chemical-Burn,Low
+,,,,,,,,
+,,,,,,,,
+,,,,,,,,
+,,,,,,,,

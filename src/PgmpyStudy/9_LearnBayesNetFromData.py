@@ -38,12 +38,9 @@ os.chdir('/development/projects/statisticallyfit/github/learningmathstat/PythonP
 
 curPath: str = os.getcwd() + "/src/PgmpyStudy/"
 
-dataPath: str = curPath + "data/"
-
 imagePath: str = curPath + 'images/'
 
 print("curPath = ", curPath, "\n")
-print("dataPath = ", dataPath, "\n")
 print('imagePath = ', imagePath, "\n")
 
 
