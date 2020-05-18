@@ -11,7 +11,7 @@ os.chdir('/development/projects/statisticallyfit/github/learningmathstat/PythonP
 
 curPath: str = os.getcwd() + "/src/CausalNexStudy/"
 
-dataPath: str = os.getcwd() + "/_data/"
+dataPath: str = os.getcwd() + "/src/_data/"
 
 
 print("curPath = ", curPath, "\n")
@@ -104,11 +104,108 @@ from pandas.core.frame import DataFrame
 
 from src.utils.DataUtil import *
 
-inputData: DataFrame = pd.read_csv(dataPath + 'combData_tweak1.csv', delimiter = ',') #, keep_default_na=False)
+import collections
 
-data = cleanData(inputData.dropna())  # remove the NA rows (which are the empty ones) and clean the whitespaces
+# Creating some names for the random variables (nodes) in the graph, to clarify meaning.
 
-data
+# Create named tuple class with names "Names" and "Objects"
+RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
+
+
+ProcessType = RandomVariable(var = "ProcessTYpe", states = ['Accel-Pedal',
+                                                            'Door-Mount',
+                                                            'Engine-Mount',
+                                                            'Engine-Wiring',
+                                                            'Oil-Fill',
+                                                            'Sun-Roof-Housing'])
+
+ToolType = RandomVariable(var = "ToolType", states = ['Forklift', 'Front-Right-Door', 'Oil', 'Power-Gun'])
+
+InjuryType = RandomVariable(var = "InjuryType", states = ['Chemical-Burn',
+                                                          'Contact-Contusion',
+                                                          'Electrical-Burn',
+                                                          'Electrical-Shock',
+                                                          'Fall-Gtm'])
+
+AbsenteeismLevel = RandomVariable(var = "AbsenteeismLevel", states =  ['Absenteeism-00',
+                                                                       'Absenteeism-01',
+                                                                       'Absenteeism-02',
+                                                                       'Absenteeism-03'])
+
+
+# Make 30 days to represent 1 month
+Time = RandomVariable(var = "Time", states = list(map(lambda day : str(day), range(31))))
+
+TrainingLevel = RandomVariable(var = "TrainingLevel", states = ['Training-00',
+                                                                'Training-01',
+                                                                'Training-02',
+                                                                'Training-03'])
+
+ExertionLevel = RandomVariable(var = "ExertionLevel", states = ['Exertion-00',
+                                                                'Exertion-01',
+                                                                'Exertion-02',
+                                                                'Exertion-03'])
+
+ExperienceLevel = RandomVariable(var = "ExperienceLevel", states = ['Experience-00',
+                                                                    'Experience-01',
+                                                                    'Experience-02',
+                                                                    'Experience-03'])
+
+WorkCapacity = RandomVariable(var = "WorkCapacity", states = ['WorkCapacity-00',
+                                                              'WorkCapacity-01',
+                                                              'WorkCapacity-02',
+                                                              'WorkCapacity-03'])
+
+dataValues = {Time.var : Time.states,
+            TrainingLevel.var : TrainingLevel.states,
+            ExertionLevel.var : ExertionLevel.states,
+            ExperienceLevel.var : ExperienceLevel.states,
+            WorkCapacity.var : WorkCapacity. states,
+            ProcessType.var : ProcessType.states,
+            ToolType.var : ToolType.states,
+            InjuryType.var : InjuryType.states,
+            AbsenteeismLevel.var : AbsenteeismLevel.states}
+
+# %% codecell
+#data: DataFrame = makeWhiteNoiseDataFrame(dataValues = {Time.var : Time.states,
+#                                                        TrainingLevel.var : TrainingLevel.states,
+#                                                        ExertionLevel.var : ExertionLevel.states,
+#                                                        ExperienceLevel.var : ExperienceLevel.states,
+#                                                        WorkCapacity.var : WorkCapacity. states,
+#                                                        ProcessType.var : ProcessType.states,
+#                                                        ToolType.var : ToolType.states,
+#                                                        InjuryType.var : InjuryType.states,
+#                                                        AbsenteeismLevel.var : AbsenteeismLevel.states},
+#                                          dataPath = dataPath + 'fullRawCombData.csv')
+
+# %% codecell
+# Making some white-noise combinations between proces, tool, injury, absenteeism out of the states which are NOT for the use cases 4, 5
+processUseCaseStates: Set[State] = set(['Engine-Wiring', 'Engine-Mount', 'Oil-Fill'])
+processStates: Set[State] = set(ProcessType.states) - processUseCaseStates; processStates
+
+# NOTE filling this up for same reason as absenteeism
+toolUseCaseStates: Set[State] = set(['Forklift', 'Power-Gun', 'Front-Right-Door', 'Oil'])
+toolStates: Set[State] = set(ToolType.states) - toolUseCaseStates; toolStates
+toolStates = ToolType.states if toolStates == set() else toolStates; toolStates
+
+injuryUseCaseStates: Set[State] = set(['Fall-Gtm', 'Contact-Contusion', 'Chemical-Burn', 'Electrical-Shock'])
+injuryStates: Set[State] = set(InjuryType.states) - injuryUseCaseStates; injuryStates
+
+#absenteeismUseCaseStates: Set[State] = set(['Engine-Wiring', 'Engine-Mount', 'Oil-Fill'])
+#absenteeismStates: Set[State] = set(AbsenteeismLevel.states) - absenteeismUseCaseStates; absenteeismStates
+## NOTE: due to the nature of this use case (4, 5) we must have some absenteeism values so we set it to the the original set of values, otherwise cannot have white noise!
+absenteeismStates: Set[State] = set(AbsenteeismLevel.states)
+
+whiteNoiseData: DataFrame = makeData(dataValues = {ProcessType.var : list(processStates),
+                                                   ToolType.var : list(toolStates),
+                                                   InjuryType.var : list(injuryStates),
+                                                   AbsenteeismLevel.var : list(absenteeismStates)},
+                                     fileName=dataPath + 'whitenoisefills.csv')
+whiteNoiseData
+
+
+# TODO: encapsulate above logic in a makeWhiteNOiseData function (to extract values that should be part of white noise automatically, from the data values that make up the test cases)
+
 # %% markdown [markdown]
 # Fit all node states:
 # %% codecell
