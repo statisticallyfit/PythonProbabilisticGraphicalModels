@@ -22,7 +22,7 @@ import os
 
 
 # Setting the baseline:
-os.chdir('/development/projects/statisticallyfit/github/learningmathstat/PythonNeuralNetNLP')
+os.chdir('/development/projects/statisticallyfit/github/learningmathstat/PythonProbabilisticGraphicalModels')
 curPath: str = os.getcwd() + "/src/CausalNexStudy/"
 
 PLAY_FONT_NAME: str = 'Play-Regular.ttf'
@@ -66,7 +66,7 @@ Color = str
 
 #Key = int
 #Legend = Dict[Key , Value]
-WeightInfo = Dict
+OriginAndWeightInfo = Dict # has shape {'origin': 'unknown', 'weight' : FLOAT_NUMBER}
 CondProbDist = Dict
 
 
@@ -421,26 +421,35 @@ def edgesToGraph(edges: List[Tuple[Variable, Variable]],
 # ---------------------------------------------------------------------------------------------------------
 # Causal Nex conversions to Graphviz graph
 
+# TODO encapsulate the edgesToGraph `weight` information: search if pgmpy model can contain weight info, and so that
+#  we can use the same pattern of code as in `pgmpyToGraph` for `structuToGraph` to avoid boilerplate!
+
+
 def structToGraph(weightedGraph: StructureModel,
-                  nodeColor: Color = LIGHT_CORNF, edgeColor: Color = CHERRY) -> gz.Digraph:
+                  nodeColor: Color = LIGHT_BLUE, edgeColor: Color = CHERRY) -> gz.Digraph:
+
     g = gz.Digraph('G')
 
-    adjacencies: List[Tuple[Variable, Dict[Variable, WeightInfo]]] = list(weightedGraph.adjacency())
+    adjacencies: List[Tuple[Variable, Dict[Variable, OriginAndWeightInfo]]] = list(weightedGraph.adjacency())
 
-    for headNode, edgeDict in adjacencies:
-        edgeList: List[Variable, WeightInfo] = list(edgeDict.items())
+    for sourceVar, edgeDict in adjacencies:
+        edgeList: List[Variable, OriginAndWeightInfo] = list(edgeDict.items())
 
-        for tailNode, weightInfoDict in edgeList:
+        for endVar, otherInfoDict in edgeList:
             g.attr('node', shape='oval') #, color='red')
 
-            g.node(headNode, headNode) # name, label   # variables[head]['desc'])
-            g.node(tailNode, tailNode) # name, label
+            g.node(sourceVar, sourceVar) # name, label   # variables[head]['desc'])
+            g.node(endVar, endVar) # name, label
             g.node_attr.update(style = 'filled', gradientangle = '90', penwidth='1',
                                fillcolor= nodeColor + ":white" , color = edgeColor,
                                fontsize = '12',  fontpath = ACME_FONT_PATH, fontname = ACME_FONT_NAME) # + '.otf')
 
-            # Setting weighted edge here
-            g.edge(tail_name = headNode, head_name = tailNode,label = str(weightInfoDict['weight']))
+            # Setting weighted edge here (if present)
+            if 'weight' in otherInfoDict.keys():
+                g.edge(tail_name = sourceVar, head_name = endVar,label = str(otherInfoDict['weight']))
+            else:
+                g.edge(tail_name = sourceVar, head_name = endVar)
+
             g.edge_attr.update(color = edgeColor, penwidth='1',
                                fontsize = '10', fontpath = PLAY_FONT_NAME, fontname = PLAY_FONT_NAME)
 
@@ -450,9 +459,6 @@ def structToGraph(weightedGraph: StructureModel,
 
 
 
-
-
-# -------------------------------------------------------------
 
 
 
