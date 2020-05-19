@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.core.frame import DataFrame
-
+from pandas.core.series import Series
 
 from pgmpy.factors.discrete.CPD import TabularCPD
 
@@ -18,18 +18,22 @@ Variable = str
 State = str
 Probability = float
 
-
 def cleanData(data: DataFrame) -> DataFrame:
-    cleanedData: DataFrame = data.copy()
+    cleanedData: DataFrame = data.copy().dropna() # copying and dropping rows with NA
 
     # Removing whitespace from the column NAMES
-    cleanedData = cleanedData.rename(columns = lambda x : x.strip()) # inplace = False
+    cleanedData: DataFrame = cleanedData.rename(columns = lambda x : x.strip(), inplace = False)
 
     # Removing whitespace from the column VALUES
-    cleanedData = cleanedData.apply(lambda x: str(x).strip() if x.dtype == "object" else x)
+    #cleanedData: DataFrame = cleanedData.applymap(lambda x: x.strip() if type(x) == str else x)
+    # NOTE: the above approach ruins the dataframe printing capability (cannot show data frame as nice as it was
+    # before, but instead it looks like messy string with \n values)
+
+    for var in cleanedData.columns:
+        valuesNoWhitespace: Series = cleanedData[var].str.strip()
+        cleanedData[var] = valuesNoWhitespace
 
     return cleanedData
-
 
 
 #------------------------------------------------------------------------------------------

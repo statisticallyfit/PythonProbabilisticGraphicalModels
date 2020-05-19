@@ -139,15 +139,18 @@ whiteNoiseData
 # Reading in the use case data
 # NOTE: reading in every column as string type so the Time variable will come out string
 usecaseData: DataFrame = pd.read_csv(dataPath + 'WIKI_USECASES_4_5.csv', delimiter = ',', dtype = str)
-usecaseData = usecaseData.dropna()
+usecaseData = cleanData(usecaseData)
 
 # Now convert the Time to int:
-usecaseData['Time'] = usecaseData['Time'].astype(int)
+usecaseData[Time.var] = usecaseData[Time.var].astype(int)
+
+# Quick check that no spaces still remain in the values (like 'High  ' and 'High')
+assert len(np.unique(usecaseData[ExertionLevel.var])) == 3
 
 usecaseData
 # %% codecell
 # Concatenate the two data frames to create the final full data set
-whiteNoiseData['Time'] = whiteNoiseData['Time'].astype(int)
+# whiteNoiseData['Time'] = whiteNoiseData['Time'].astype(int)
 
 # NOTE: inspected results but ElectricalBurn turns out too high probability (in Injury CPD later on) probabily just because of the frequency of appearances, so the whole 'whitenoisedata' concept cannot be correct. Even using a single state value for  white noise, just using the non-signal values to generate combinations of whtie noise values will STILL bias the results, even if the end ndoe variable (Absenteeism) is still 01,2,3 evenly spread out among that single state value.
 #data: DataFrame = pd.concat([usecaseData, whiteNoiseData],
@@ -240,38 +243,76 @@ bayesNet.fit_cpds(data, method="BayesianEstimator", bayes_prior="K2")
 # Because `Time` has no incoming nodes, only outgoing nodes, its conditional distribution is also its *fully* marginal distribution - it is not conditional on any other variable.
 # %% codecell
 bayesNet.cpds[Time.var]
+# %% markdown
+# $\color{green}{\text{SUCCESS:}}$
+#
+# 1. as **time** increases, it is more likely that **exertion-level** rises also.
 # %% codecell
 bayesNet.cpds[ExertionLevel.var]
+# %% markdown
+# $\color{green}{\text{SUCCESS:}}$
+#
+# 1. as **time** increases, it is more likely that **experience-level** rises also.
+# %% codecell
+bayesNet.cpds[ExperienceLevel.var]
+# %% markdown
+# $\color{green}{\text{SUCCESS:}}$
+#
+# 1. as **time** increases, it is more likely that **training-level** rises also.
+# %% codecell
+bayesNet.cpds[TrainingLevel.var]
+
+
+# %% markdown
+# $\color{red}{\text{TODO: why isn't work capacity reflecting HIGH --> LOW??}}$
+#
+# * (a) $\color{red}{\text{X}}$ As **time** increases, the **exertion-level** rises and **experience-level** rises and **training-level** rises which in turn might raise **work-capacity**.
+# * (b)  $\color{red}{\text{X}}$  As **time** increases more, the **exertion-level**, **experience-level**, **training-level** may all rise but at a specific point in time, the **exertion-level** may be high enough to lower **work-capacity** more than in Scenario 1, despite the higher levels of **experience-level** and **training-level**.
 # %% codecell
 bayesNet.cpds[WorkCapacity.var]
 # %% markdown
-# $\color{green}{\text{SUCCESS: }}$ The data-biasing has worked! The use cases have been verified. Below we see that:
+# $\color{green}{\text{SUCCESS: }}$
 #
-# * (a) Given process-type = `Engine-Mount` and tool-type = `Forklift` the most likely injury-type = `Contact-Contusion` or even `Fall-Gtm` rather than things like `Chemical-Burn`. $\color{red}{\text{Actually, Chemical-Burn turns out high probablility ...? todo}}$ 
-# * (b) Given process-type = `Engine-Wiring` and uses-op = `Power-Gun` the most likely injury-type = `Electrical-Shock` than things like `Contact-Contusion`.
-# * (e) Given process-type = `Oil-Fill` and uses-op = `Oil`, the most likely injury-type = either `Chemical-Burn` or `Electrical-Shock`. (NOTE: focused on `Chemical-Burn` in data set so that is why the other option does not have high probability)
+# * (a) Given **process-type** = `Engine-Mount` and **tool-type** = `Forklift` the most likely **injury-type** = `Contact-Contusion` or even `Fall-Gtm` rather than things like `Chemical-Burn`. $\color{red}{\text{Actually, Chemical-Burn turns out high probablility ...? todo}}$
+# * (b) Given **process-type** = `Engine-Wiring` and **tool-type** = `Power-Gun` the most likely **injury-type** = `Electrical-Shock` than things like `Contact-Contusion`.
+# * (e) Given **process-type** = `Oil-Fill` and **tool-type** = `Oil`, the most likely **injury-type** = either `Chemical-Burn` or `Electrical-Shock`. (NOTE: focused on `Chemical-Burn` in data set so that is why the other option does not have high probability)
 # %% codecell
 bayesNet.cpds[InjuryType.var]
+
+# %% markdown
+# * $\color{blue}{\text{DEBUG}}:$ case (a): the **injury-type** = `Chemical-Burn` came out with probability = $0.496711$ (so basically the highest probability in the CPD) when **tool-type** = `Forklift` and **process-type** = `Engine-Mount` because there was higher frequency of **injury-type** = `Chemical-Burn` in the data, when conditional on these variable states. Just see the snapshot of the data below for the `Forklift` section:
+
+# %% codecell
+
+usecaseData[(usecaseData.ProcessType == 'Engine-Mount') &
+            (usecaseData.Time == 1) &
+            (usecaseData.ToolType == 'Forklift')]
+# %% markdown
+# * $\color{blue}{\text{DEBUG}}:$ case (b): there was even probability (both high compared to rest) for values `Electrical-Shock` and `Fall-Gtm` when **process-type** = `Engine-Wiring` and **tool-type** = `Power-Gun`, which reflects what was in the data (but not what was specified in the use case)
+# %% codecell
+
+usecaseData[(usecaseData.ProcessType == 'Engine-Wiring') &
+            (usecaseData.Time == 1) &
+            (usecaseData.ToolType == 'Power-Gun')]
+
+# %% markdown
+# * **work-capacity** = `High` when **absenteeism-level** = `Low` with probability $0.750$
+# * $\color{red}{\text{TODO}}:$ why is it true that there are equally likely probabilities everywhere else?
 # %% codecell
 bayesNet.cpds[AbsenteeismLevel.var]
 
-# %% markdown [markdown]
-# But `uses_op` has `process_type` as an incoming node, so its conditional distribution shows the values of `uses_op` conditional on values of `process_type`:
-# %% codecell
-bayesNet.cpds['uses_op']
-# %% markdown [markdown]
-# `injury_type` is conditional on two variables, and its table reflects this:
-# %% codecell
-bayesNet.cpds['injury_type']
 
-# %% markdown [markdown]
-# `absenteeism_level` is only **directly** conditional on two variables, the `injury_type` and `process_type`, which is visible in its conditional probability distribution table below:
-# %% codecell
-bayesNet.cpds['absenteeism_level']
 
 # %% markdown
-# Showing the final rendered graph with the conditional probability distributions alongside the nodes:
+# ## Step 4: Inference (querying marginals)
 # %% codecell
-#Image(filename = curPath + 'modelWithCPDs.png')
-graph = structToGraph(weightedGraph = carModel)
-#graphProbs = renderGraphProbabilities(givenGraph = graph, variables = ???)
+from causalnex.inference import InferenceEngine
+
+
+eng = InferenceEngine(bn = bayesNet)
+
+# querying the baseline marginals as learned from the data
+marginalDist: Dict[Variable, Dict[State, Probability]] = eng.query()
+marginalDist
+
+# %% codecell
