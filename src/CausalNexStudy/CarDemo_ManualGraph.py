@@ -315,4 +315,130 @@ eng = InferenceEngine(bn = bayesNet)
 marginalDist: Dict[Variable, Dict[State, Probability]] = eng.query()
 marginalDist
 
+# %% markdown
+# Checking marginal distribution of **work-capacity**:
 # %% codecell
+eng.query()[WorkCapacity.var]
+# %% markdown
+# Biasing so that lower work capacity probability gets higher:
+# %% codecell
+# NOTE: in the data, in TIME + 30, when exertion, training, experience are all HIGH, the work-capacity = LOW
+eng.query({Time.var : 30, ExertionLevel.var : 'High', TrainingLevel.var : 'High', ExperienceLevel.var : 'High'})[WorkCapacity.var]
+# %% codecell
+# Different than data: at time = 30, in data all these exertion, experience, training are High, so testing what happens to workcapacity when they are set to Medium:
+eng.query({Time.var : 30, ExertionLevel.var : 'Medium', TrainingLevel.var : 'Medium', ExperienceLevel.var : 'Medium'})[WorkCapacity.var]
+# %% codecell
+# Different than data: at time = 30, in data all these exertion, experience, training are High, so testing what happens to workcapacity when they are set to Low:
+eng.query({Time.var : 30, ExertionLevel.var : 'Low', TrainingLevel.var : 'Low', ExperienceLevel.var : 'Low'})[WorkCapacity.var]
+# %% codecell
+# NOTE: in the data set, exertion, training, experience are all MEDIUM during Time = 5 so this is why the inference also assigns high probability to Medium
+eng.query({Time.var : 5, ExertionLevel.var : 'Medium', TrainingLevel.var : 'Medium', ExperienceLevel.var : 'Medium'})[WorkCapacity.var]
+# %% codecell
+# NOTE: in the data, the work capacity  = Medium when all other vars here are medium, during time = 26 so that is why there is such high probability of Medium for work capacity, assuming these states.
+eng.query({Time.var : 26, ExertionLevel.var : 'Medium', TrainingLevel.var : 'Medium', ExperienceLevel.var : 'Medium'})[WorkCapacity.var]
+# %% codecell
+# NOTE: in the data set, exertion, training, experience are all LOW during Time = 2 so this is why the inference also assigns high probability to LOW
+
+eng.query({Time.var : 2, ExertionLevel.var : 'Low', TrainingLevel.var : 'Low', ExperienceLevel.var : 'Low'})[WorkCapacity.var]
+
+# %% markdown
+# ## Step 5: Reasoning via Active Trails
+# ### 1/ Reasoning via Active Trails along Causal Chains in the Car Model
+# %% codecell
+structToGraph(carModel)
+
+# %% markdown
+# #### Testing conditional independence:
+# $$
+# \color{DodgerBlue}{\text{ExertionLevel (observed)}: \;\;\;\;\;\;\;  \text{Time} \; \bot \; \text{WorkCapacity} \; | \; \text{ExertionLevel}}
+# $$
+# Given that **ExertionLevel**'s state is unobserved, we can make the following equivalent statements:
+# * there IS active trail between **Time** and **WorkCapacity**.
+# * **Time** and **WorkCapacity** are dependent.
+# * the probability of **Time** can influence probability of **WorkCapacity** (and vice versa).
+# %% codecell
+eng.query({Time.var : 30, ExertionLevel.var : 'High'})[WorkCapacity.var]
+# %% codecell
+eng.query({Time.var : 5, ExertionLevel.var : 'High'})[WorkCapacity.var]
+# %% codecell
+eng.query({Time.var : 23, ExertionLevel.var : 'High'})[WorkCapacity.var]
+# %% codecell
+eng.query({Time.var : 11, ExertionLevel.var : 'High'})[WorkCapacity.var]
+
+
+# %% markdown
+# $\color{green}{\text{SUCCESS}}$ the probabilities ARE different, signifying an active trail between Time and WorkCapacity.
+
+# %% markdown
+# #### Testing the causal chain:
+# $$
+# \color{SeaGreen}{\text{ExertionLevel (unobserved)}: \;\;\;\;\;\;\; \text{Time} \rightarrow \text{ExertionLevel} \rightarrow \text{WorkCapacity}}
+# $$
+# Given that **ExertionLevel**'s state is unobserved, we can make the following equivalent statements:
+# * there is NO active trail between **Time** and **WorkCapacity**.
+# * **Time** and **WorkCapacity** are locally independent.
+# * the probability of **Time** won't influence probability of **WorkCapacity** (and vice versa).
+
+# %% codecell
+eng.query({Time.var : 30})[WorkCapacity.var]
+# %% codecell
+eng.query({Time.var : 5})[WorkCapacity.var]
+# %% codecell
+eng.query({Time.var : 23})[WorkCapacity.var]
+# %% codecell
+eng.query({Time.var : 11})[WorkCapacity.var]
+# %% markdown
+# $\color{red}{\text{TODO Problem!: }}$ Not supposed to be dependent probabilities (different distributions) when Exertion is not observed, so why are the probabilities different?
+
+
+
+
+
+
+# %% markdown
+# ### 4/ Reasoning via Active Trails along Common Effect Structures in the Car Model
+# %% codecell
+structToGraph(carModel)
+
+# %% markdown
+# #### Testing marginal independence:
+# $$
+# \color{DodgerBlue}{\text{AbsenteeismLevel (unobserved)}: \;\;\;\;\;\;\;  \text{InjuryType} \; \bot \; \text{ProcessType} \; | \; \text{AbsenteeismLevel}}
+# $$
+# Given that **AbsenteeismLevel**'s state is unobserved, we can make the following equivalent statements:
+# * there is NO active trail between **InjuryType** and **ProcessType**.
+# * **InjuryType** and **ProcessType** are locally independent.
+# * the probability of **InjuryType** cannot influence probability of **ProcessType** (and vice versa).
+# %% codecell
+eng.query({InjuryType.var : 'Contact-Contusion'})[ProcessType.var]
+# %% codecell
+eng.query({InjuryType.var : 'Fall-Gtm'})[ProcessType.var]
+# %% codecell
+eng.query({InjuryType.var : 'Electrical-Shock'})[ProcessType.var]
+# %% codecell
+eng.query({InjuryType.var : 'Chemical-Burn'})[ProcessType.var]
+
+# %% markdown
+# $\color{red}{\text{TODO Problem!: }}$ Not supposed to be dependent probabilities (different distributions)
+
+
+
+# %% markdown
+# #### Testing the inter-causal chain:
+# $$
+# \color{SeaGreen}{\text{AbsenteeismLevel (observed)}: \;\;\;\;\;\;\; \text{InjuryType} \Longrightarrow \text{AbsenteeismLevel} \Longleftarrow \text{ProcessType}}
+# $$
+# Given that **AbsenteeismLevel**'s state is observed, we can make the following equivalent statements:
+# * there IS active trail between **InjuryType** and **ProcessType**.
+# * **InjuryType** and **ProcessType** are dependent.
+# * the probability of **InjuryType** can influence probability of **ProcessType** (and vice versa).
+
+# %% codecell
+# Arbitrarily setting absentee = Medium for all of them (to compare):
+eng.query({InjuryType.var : 'Contact-Contusion', AbsenteeismLevel.var : 'Medium'})[ProcessType.var]
+# %% codecell
+eng.query({InjuryType.var : 'Fall-Gtm', AbsenteeismLevel.var : 'Medium'})[ProcessType.var]
+# %% codecell
+eng.query({InjuryType.var : 'Electrical-Shock', AbsenteeismLevel.var : 'Medium'})[ProcessType.var]
+# %% codecell
+eng.query({InjuryType.var : 'Chemical-Burn', AbsenteeismLevel.var : 'Medium'})[ProcessType.var]
