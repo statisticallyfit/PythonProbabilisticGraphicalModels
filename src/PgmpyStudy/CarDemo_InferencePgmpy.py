@@ -1,9 +1,6 @@
 # %% markdown [markdown]
-# [Source for tutorial](https://github.com/pgmpy/pgmpy/blob/dev/examples/Alarm.ipynb)
-#
-#
-# # Alarm Bayesian Network
-# Creating the Alarm Bayesian network using pgmpy and doing some simple queries (mentioned in Bayesian Artificial Intelligence, Section 2.5.1: )
+# # Car Bayesian Network
+# Creating bayesian network to model use cases in [https://synergo.atlassian.net/wiki/spaces/CLNTMMC/pages/1812529153/RFP+-+Extra+use+cases+-+Appendix+A](https://synergo.atlassian.net/wiki/spaces/CLNTMMC/pages/1812529153/RFP+-+Extra+use+cases+-+Appendix+A).
 
 # %% markdown [markdown]
 # Doing path-setting:
@@ -22,10 +19,11 @@ os.chdir('/development/projects/statisticallyfit/github/learningmathstat/PythonP
 
 curPath: str = os.getcwd() + "/src/PgmpyStudy/"
 
-
+dataPath: str = os.getcwd() + "/src/_data/"
 imagePath: str = curPath + 'images/'
 
 print("curPath = ", curPath, "\n")
+print("dataPath = ", dataPath, "\n")
 print('imagePath = ', imagePath, "\n")
 
 
@@ -57,355 +55,251 @@ from functools import reduce
 
 from src.utils.GraphvizUtil import *
 from src.utils.NetworkUtil import *
-# %% markdown [markdown]
-# ## Problem Statement: 2.5.1 Earthquake Alarm
-# **Example statement:** You have a new burglar alarm installed. It reliably detects burglary, but also responds to minor earthquakes. Two neighbors, John and Mary, promise to call the police when they hear the alarm. John always calls when he hears the alarm, but sometimes confuses the alarm with the phone ringing and calls then also. On the other hand, Mary likes loud music and sometimes doesn't hear the alarm. Given evidence about who has and hasn't called, you'd like to estimate the probability of a burglary alarm (from Pearl (1988)).
-#
+from src.utils.DataUtil import *
+
+import pandas as pd
+from pandas.core.frame import DataFrame
+
+
+# %% markdown
+# ## Step 1: Creating / Loading Data
 # %% codecell
-
 import collections
-
-# Creating some names for the random variables (nodes) in the graph, to clarify meaning.
 
 # Create named tuple class with names "Names" and "Objects"
 RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
 
-Burglary = RandomVariable(var = "Burglary", states = ['True', 'False'])
-Earthquake = RandomVariable(var = "Earthquake", states = ['True', 'False'])
-Alarm = RandomVariable(var = "Alarm", states = ['True', 'False'])
-JohnCalls = RandomVariable(var = "JohnCalls", states = ['True', 'False'])
-MaryCalls = RandomVariable(var = "MaryCalls", states = ['True', 'False'])
 
-#Burglary: Dict[Variable, List[State]] = {Burglary.var: ['True', 'False']}
-#Earthquake: Dict[Variable, List[State]] = {Earthquake.var: ['True', 'False']}
-#Alarm: Dict[Variable, List[State]] = {Alarm.var: ['True', 'False']}
-#JohnCalls: Dict[Variable, List[State]] = {JohnCalls.var: ['True', 'False']}
-#MaryCalls: Dict[Variable, List[State]] = {MaryCalls.var: ['True', 'False']}
+ProcessType = RandomVariable(var = "ProcessType", states = ['Accel-Pedal',
+                                                            'Door-Mount',
+                                                            'Engine-Mount',
+                                                            'Engine-Wiring',
+                                                            'Oil-Fill',
+                                                            'Sun-Roof-Housing'])
 
+ToolType = RandomVariable(var = "ToolType", states = ['Forklift', 'Front-Right-Door', 'Oil', 'Power-Gun'])
 
-# Defining the network structure:
-#alarmModel: BayesianModel = BayesianModel([(Burglary.variable, Alarm.variable),
-#                                           (Earthquake.variable, Alarm.variable),
-#                                           (Alarm.variable, JohnCalls.variable),
-#                                           (Alarm.variable, MaryCalls.variable)])
+InjuryType = RandomVariable(var = "InjuryType", states = ['Chemical-Burn',
+                                                          'Contact-Contusion',
+                                                          'Electrical-Burn',
+                                                          'Electrical-Shock',
+                                                          'Fall-Gtm'])
 
-alarmModel: BayesianModel = BayesianModel([(Burglary.var, Alarm.var),
-                                          (Earthquake.var, Alarm.var),
-                                          (Alarm.var, JohnCalls.var),
-                                          (Alarm.var, MaryCalls.var)])
-
-# Defining parameters using CPT
-
-cpdBurglary: TabularCPD = TabularCPD(variable = Burglary.var, variable_card = len(Burglary.states),
-                                     values = [[0.001, 0.999]],
-                                     state_names = {Burglary.var : Burglary.states})
-
-print(cpdBurglary)
-
-# %% codecell
-cpdEarthquake: TabularCPD = TabularCPD(variable = Earthquake.var,
-                                       variable_card = len(Earthquake.states),
-                                       values = [[0.002, 0.998]],
-                                       state_names = {Earthquake.var : Earthquake.states})
-
-print(cpdEarthquake)
-
-# %% codecell
-cpdAlarm: TabularCPD = TabularCPD(variable = Alarm.var,
-                                  variable_card = len(Alarm.states),
-                                  values = [[0.95, 0.94, 0.29, 0.001],
-                                            [0.05, 0.06, 0.71, 0.999]],
-                                  evidence = [Burglary.var, Earthquake.var],
-                                  evidence_card = [len(Burglary.states), len(Earthquake.states)],
-                                  state_names = {Alarm.var: Alarm.states,
-                                                 Burglary.var : Burglary.states,
-                                                 Earthquake.var : Earthquake.states})
-print(cpdAlarm)
+#AbsenteeismLevel = RandomVariable(var = "AbsenteeismLevel", states =  ['Absenteeism-00',
+#                                                                       'Absenteeism-01',
+#                                                                       'Absenteeism-02',
+#                                                                       'Absenteeism-03'])
+AbsenteeismLevel = RandomVariable(var = "AbsenteeismLevel", states =  ['Low', 'Medium', 'High'])
 
 
-#def toDict(tup: RandomVariable):
-#    return {tup.var : tup.states}
-# %% codecell
-# Checking how internal probabilities are structured versus the printout:
-list(cpdAlarm.state_names.keys())[1:]
+# Make 30 days to represent 1 month
+Time = RandomVariable(var = "Time", states = list(map(lambda day : str(day), range(1, 31))))
 
-cpdAlarm.values
+#TrainingLevel = RandomVariable(var = "TrainingLevel", states = ['Training-00',
+#                                                                'Training-01',
+#                                                                'Training-02',
+#                                                                'Training-03'])
+TrainingLevel = RandomVariable(var = "TrainingLevel", states = ['Low', 'Medium', 'High'])
 
-cpdAlarm.get_values()
+#ExertionLevel = RandomVariable(var = "ExertionLevel", states = ['Exertion-00',
+#                                                                'Exertion-01',
+#                                                                'Exertion-02',
+#                                                                'Exertion-03'])
+ExertionLevel = RandomVariable(var = "ExertionLevel", states = ['Low', 'Medium', 'High'])
+
+#ExperienceLevel = RandomVariable(var = "ExperienceLevel", states = ['Experience-00',
+#                                                                    'Experience-01',
+#                                                                    'Experience-02',
+#                                                                    'Experience-03'])
+ExperienceLevel = RandomVariable(var = "ExperienceLevel", states = ['Low', 'Medium', 'High'])
+
+#WorkCapacity = RandomVariable(var = "WorkCapacity", states = ['WorkCapacity-00',
+#                                                              'WorkCapacity-01',
+#                                                              'WorkCapacity-02',
+#                                                              'WorkCapacity-03'])
+WorkCapacity = RandomVariable(var = "WorkCapacity", states = ['Low', 'Medium', 'High'])
+
+dataDict = {Time.var : Time.states,
+            TrainingLevel.var : TrainingLevel.states,
+            ExertionLevel.var : ExertionLevel.states,
+            ExperienceLevel.var : ExperienceLevel.states,
+            WorkCapacity.var : WorkCapacity. states,
+            ProcessType.var : ProcessType.states,
+            ToolType.var : ToolType.states,
+            InjuryType.var : InjuryType.states,
+            AbsenteeismLevel.var : AbsenteeismLevel.states}
 
 # %% codecell
-cpdJohnCalls: TabularCPD = TabularCPD(variable = JohnCalls.var, variable_card = len(JohnCalls.states),
-                                      values = [[0.90, 0.05],
-                                                [0.10, 0.95]],
-                                      evidence = [Alarm.var], evidence_card = [len(Alarm.states)],
-                                      state_names = {JohnCalls.var : JohnCalls.states,
-                                                     Alarm.var : Alarm.states})
-print(cpdJohnCalls)
+# Reading in the use case data
+# NOTE: reading in every column as string type so the Time variable will come out string
+usecaseData: DataFrame = pd.read_csv(dataPath + 'WIKI_USECASES_4_5.csv', delimiter = ',', dtype = str)
+usecaseData = cleanData(usecaseData)
+
+# Now convert the Time to int:
+usecaseData[Time.var] = usecaseData[Time.var].astype(int)
+
+data = usecaseData
+# TODO: Option to later concat with white noise data (like in CarDemo Manual from CausalnexStudy)
+data
+
+
+# %% markdown
+# ## Step 2: Create Network Structure
 
 # %% codecell
-cpdMaryCalls: TabularCPD = TabularCPD(variable = MaryCalls.var, variable_card = len(MaryCalls.states),
-                                      values = [[0.70, 0.01],
-                                                [0.30, 0.99]],
-                                      evidence = [Alarm.var], evidence_card = [len(Alarm.states)],
-                                      state_names = {MaryCalls.var: MaryCalls.states,
-                                                     Alarm.var : Alarm.states})
-print(cpdMaryCalls)
 
+carModel: BayesianModel = BayesianModel([
+    (ExertionLevel.var, WorkCapacity.var),
+    (ExperienceLevel.var, WorkCapacity.var),
+    (TrainingLevel.var, WorkCapacity.var),
+    (WorkCapacity.var, AbsenteeismLevel.var),
+
+    (Time.var, WorkCapacity.var),
+    (Time.var, AbsenteeismLevel.var),
+    (Time.var, ExertionLevel.var),
+    (Time.var, ExperienceLevel.var),
+    (Time.var, TrainingLevel.var),
+
+    (ProcessType.var, ToolType.var),
+    (ToolType.var, InjuryType.var),
+    (ProcessType.var, InjuryType.var),
+    (ProcessType.var, AbsenteeismLevel.var),
+    (InjuryType.var, AbsenteeismLevel.var)
+])
+
+
+pgmpyToGraph(model = carModel)
+
+# %% markdown
+# ## Step 3: Estimate CPDs
 # %% codecell
-alarmModel.add_cpds(cpdBurglary, cpdEarthquake, cpdAlarm, cpdJohnCalls, cpdMaryCalls)
+from pgmpy.estimators import BayesianEstimator
 
-assert alarmModel.check_model()
+#est: BayesianEstimator = BayesianEstimator(model = carModel, data = data)
 
+assert carModel.get_cpds() == [], "Check cpds are empty beforehand"
 
-# %% markdown [markdown]
-# Making a brief-name version for viewing clarity, in tables:
-# %% codecell
-alarmModel_brief: BayesianModel = BayesianModel([(Burglary.var[0], Alarm.var[0]),
-                                          (Earthquake.var[0], Alarm.var[0]),
-                                          (Alarm.var[0], JohnCalls.var[0]),
-                                          (Alarm.var[0], MaryCalls.var[0])])
-
-# Defining parameters using CPT
-
-cpdBurglary: TabularCPD = TabularCPD(variable = Burglary.var[0], variable_card = len(Burglary.states),
-                                     values = [[0.001, 0.999]],
-                                     state_names = {Burglary.var[0] : Burglary.states})
-
-
-cpdEarthquake: TabularCPD = TabularCPD(variable = Earthquake.var[0],
-                                       variable_card = len(Earthquake.states),
-                                       values = [[0.002, 0.998]],
-                                       state_names = {Earthquake.var[0] : Earthquake.states})
-
-
-cpdAlarm: TabularCPD = TabularCPD(variable = Alarm.var[0],
-                                  variable_card = len(Alarm.states),
-                                  values = [[0.95, 0.94, 0.29, 0.001],
-                                            [0.05, 0.06, 0.71, 0.999]],
-                                  evidence = [Burglary.var[0], Earthquake.var[0]],
-                                  evidence_card = [len(Burglary.states), len(Earthquake.states)],
-                                  state_names = {Alarm.var[0]: Alarm.states,
-                                                 Burglary.var[0] : Burglary.states,
-                                                 Earthquake.var[0] : Earthquake.states})
-
-cpdJohnCalls: TabularCPD = TabularCPD(variable = JohnCalls.var[0], variable_card = len(JohnCalls.states),
-                                      values = [[0.90, 0.05],
-                                                [0.10, 0.95]],
-                                      evidence = [Alarm.var[0]], evidence_card = [len(Alarm.states)],
-                                      state_names = {JohnCalls.var[0] : JohnCalls.states,
-                                                     Alarm.var[0] : Alarm.states})
-
-cpdMaryCalls: TabularCPD = TabularCPD(variable = MaryCalls.var[0], variable_card = len(MaryCalls.states),
-                                      values = [[0.70, 0.01],
-                                                [0.30, 0.99]],
-                                      evidence = [Alarm.var[0]], evidence_card = [len(Alarm.states)],
-                                      state_names = {MaryCalls.var[0]: MaryCalls.states,
-                                                     Alarm.var[0] : Alarm.states})
-
-alarmModel_brief.add_cpds(cpdBurglary, cpdEarthquake, cpdAlarm, cpdJohnCalls, cpdMaryCalls)
-
-assert alarmModel_brief.check_model()
+carModel.fit(data, estimator = BayesianEstimator,
+             prior_type = "BDeu",
+             equivalent_sample_size = 10)
 
 
 # %% codecell
-pgmpyToGraphCPD(model = alarmModel, shorten = False)
-
-
-# %% markdown [markdown]
-# ## 1/ Independencies of the Alarm Model
+pgmpyTabularToDataFrame(carModel, queryVar = Time.var)
 # %% codecell
-alarmModel.local_independencies(Burglary.var)
+pgmpyTabularToDataFrame(carModel, queryVar = ProcessType.var)
 # %% codecell
-alarmModel.local_independencies(Earthquake.var)
+pgmpyTabularToDataFrame(carModel, queryVar = ToolType.var)
 # %% codecell
-alarmModel.local_independencies(Alarm.var)
+pgmpyTabularToDataFrame(carModel, queryVar = ExperienceLevel.var)
 # %% codecell
-print(alarmModel.local_independencies(MaryCalls.var))
-
-indepSynonymTable(model = alarmModel, queryNode = MaryCalls.var)
+pgmpyTabularToDataFrame(carModel, queryVar = WorkCapacity.var)
 # %% codecell
-print(alarmModel.local_independencies(JohnCalls.var))
-
-indepSynonymTable(model = alarmModel, queryNode = JohnCalls.var)
-# %% codecell
-alarmModel.get_independencies()
-
-
+pgmpyTabularToDataFrame(carModel, queryVar = InjuryType.var)
 
 # %% codecell
-# TODO say direct dependency assumptions (from Korb book)
-
-pgmpyToGraph(alarmModel)
-# %% markdown [markdown]
-# ### Study: Independence Maps (I-Maps)
-# * **Markov Assumption:** Bayesian networks require the assumption of **Markov Property**: that there are no direct dependencies in the system being modeled, which are not already explicitly shown via arcs. (In the earthquake example, this translates to saying there is no way for an `Earthquake` to influence `MaryCalls` except by way of the `Alarm`.  There is no **hidden backdoor** from  `Earthquake` to `MaryCalls`).
-# * **I-maps:** Bayesian networks which have this **Markov property** are called **Independence-maps** or **I-maps**, since every independence suggested by the lack of an arc is actual a valid, real independence in the system.
-#
-# Source: Korb book, Bayesian Artificial Intelligence (section 2.2.4)
-# %% markdown [markdown]
-# ### Example 1: I-map
-# Testing meaning of an **I-map** using a simple student example
-# %% codecell
-Difficulty: RandomVariable = RandomVariable(var = 'diff', states = ['Easy', 'Hard'])
-Grade: RandomVariable = RandomVariable(var = 'grade', states = ['Good', 'Medium', 'Bad'])
-Intelligence: RandomVariable = RandomVariable(var = 'intel', states = ['Dumb', 'Average', 'Intelligent'])
-
-
-gradeModel = BayesianModel([(Difficulty.var, Grade.var), (Intelligence.var, Grade.var)])
-
-diff_cpd = TabularCPD(variable = Difficulty.var, variable_card = len(Difficulty.states),
-                      values = [[0.2], [0.8]])
-
-intel_cpd = TabularCPD(variable = Intelligence.var, variable_card = len(Intelligence.states),
-                       values = [[0.5], [0.3], [0.2]])
-
-grade_cpd = TabularCPD(variable = Grade.var, variable_card = len(Grade.states),
-                       values = [[0.1,0.1,0.1,0.1,0.1,0.1],
-                                    [0.1,0.1,0.1,0.1,0.1,0.1],
-                                    [0.8,0.8,0.8,0.8,0.8,0.8]],
-                       evidence=[Difficulty.var, Intelligence.var],
-                       evidence_card=[len(Difficulty.states), len(Intelligence.states)])
-
-gradeModel.add_cpds(diff_cpd, intel_cpd, grade_cpd)
-
-
-pgmpyToGraphCPD(gradeModel)
-
-# %% markdown [markdown]
-# Showing two ways of creating the `JointProbabilityDistribution`    : (1) by feeding in values manually, or (2) by using `reduce` over the `TabularCPD`s or `DiscreteFactor`s.
-# %% codecell
-# Method 1: Creating joint distribution manually, by feeding in the calculated values:
-jpdValues = [0.01, 0.01, 0.08, 0.006, 0.006, 0.048, 0.004, 0.004, 0.032,
-           0.04, 0.04, 0.32, 0.024, 0.024, 0.192, 0.016, 0.016, 0.128]
-
-JPD = JointProbabilityDistribution(variables = [Difficulty.var , Intelligence.var, Grade.var],
-                                   cardinality = [len(Difficulty.states), len(Intelligence.states), len(Grade.states)], values = jpdValues)
-
-print(JPD)
-
-# %% markdown [markdown]
-# Showing if small student model is I-map:
-# %% codecell
-from src.utils.NetworkUtil import *
-
-
-# Method 2: creating the JPD by multiplying over the TabularCPDs (as per formula in page 16 of pgmpy book, Ankur Ankan)
-gradeJPDFactor: DiscreteFactor = DiscreteFactor(variables = JPD.variables, cardinality =  JPD.cardinality, values = JPD.values)
-gradeJPD: JointProbabilityDistribution = jointDistribution(gradeModel)
-
-
-assert gradeModel.is_imap(JPD = JPD), "Check: using JPD to verify the graph is an independence-map: means no hidden backdoors between nodes and no way for variables to influence others except by one path"
-
-assert gradeJPD == gradeJPDFactor, "Check: joint distribution is the same as multiplying the cpds"
-
-# %% markdown [markdown]
-# Grade model's `JointProbabilityDistribution` over all variables:
-# %% codecell
-print(gradeJPD)
-
-# %% markdown [markdown]
-# Checking if alarm model is I-map:
-# %% codecell
-alarmJPD: JointProbabilityDistribution = jointDistribution(alarmModel_brief)
-
-assert not alarmModel_brief.is_imap(JPD = alarmJPD)
+pgmpyTabularToDataFrame(carModel, queryVar = AbsenteeismLevel.var)
 
 
 
 
 
 # %% markdown [markdown]
-# ## 3/ Joint Distribution Represented by the Bayesian Network
-# Computing the Joint Distribution from the Bayesian Network, `model`:
-#
-# From the **chain rule of probability (also called and rule):**
-# $$
-# P(A, B) = P(B) \cdot P(A \; | \; B)
-# $$
-# Now in this case for the `alarmModel`:
-# $$
-# \begin{array}{ll}
-# P(J, M, A, E, B)
-# &= P(J \; | \; M, A, E, B) \cdot P(J, M, A, E, B) \\
-# &= P(J \; | \; M, A, E, B) \cdot {\color{cyan} (} P(M \; | \; A,E,B) \cdot P(A,E,B) {\color{cyan} )} \\
-# &=  P(J \; | \; M, A, E, B) \cdot  P(M \; | \; A,E,B) \cdot {\color{cyan} (}P(A \; | \; E,B) \cdot P(E, B){\color{cyan} )} \\
-# &= P(J \; | \; M, A, E, B) \cdot  P(M \; | \; A,E,B) \cdot P(A \; | \; E,B) \cdot {\color{cyan} (}P(E \; | \; B) \cdot P(B){\color{cyan} )} \\
-# \end{array}
-# $$
-# %% codecell
-probChainRule(['J','M','A','E','B'])
-# %% markdown [markdown]
-# Alarm model's `JointProbabilityDistribution` over all variables
-# %% codecell
-print(alarmJPD)
-
-
-
-
-# %% markdown [markdown]
-# ## 4/ Inference in Bayesian Alarm Model
+# ## Inference in Bayesian Car Model
 #
 # Now let us do inference in a  Bayesian model and predict values using this model over new data points for ML tasks.
 #
-# ### 1. Causal Reasoning in the Alarm Model
+# ### 1. Causal Reasoning in the Car Model
 # For a causal model $A \rightarrow B \rightarrow C$, there are two cases:
 #   * **Marginal Dependence:** ($B$ unknown): When $B$ is unknown / unobserved, there is an active trail between $A$ and $C$, meaning the probability of $A$ can influence probability of $C$ (and vice versa).
 #   * **Conditional Independence:** ($B$ fixed): When $B$ is fixed, there is NO active trail between $A$ and $C$, so they are independent, which means the probability of $A$ won't influence probability of $C$ (and vice versa).
 
 
 # %% codecell
-pgmpyToGraph(alarmModel)
+pgmpyToGraph(carModel)
 # %% markdown [markdown]
 # ### Case 1: Marginal Dependence (for Causal Model)
 # For a causal model $A \rightarrow B \rightarrow C$, when the state of the middle node $B$ is unobserved, then an active trail is created between the nodes, namely the active trail is $A \rightarrow B \rightarrow C$. Information can now flow from node $A$ to node $C$ via node $B$. This implies there is a dependency between nodes $A$ and $C$, so the probability of $A$ taking on any of its states can influence the probability of $C$ taking on any of its states. This is called **marginal dependence** We can write this as: $P(A | C) \ne P(A)$
 #
 # $\color{red}{\text{TODO}}$ left off here trying to refactor the text (continue from sublime notes pg 35 Korb and pg 336 Bayesiabook)
 # $$
-# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longrightarrow \text{Alarm} \longrightarrow \text{MaryCalls}}
+# \color{Green}{ \text{ExertionLevel (unobserved): }\;\;\;\;\;\;\;\;\; \text{Time} \longrightarrow \text{Exertion} \longrightarrow \text{WorkCapacity}}
 # $$
 #
-# Given that the state of `Alarm` is unobserved, we can make the following equivalent statements:
-# * there IS an active trail between `Burglary` and `MaryCalls`.
-# * the random variables `Burglary` and `MaryCalls` are dependent.
-# * the probability of `Burglary` can influence probability of `MaryCalls` (and vice versa).
+# Given that the state of `ExertionLevel` is unobserved, we can make the following equivalent statements:
+# * there IS an active trail between `Time` and `WorkCapacity`.
+# * the random variables `Time` and `WorkCapacity` are dependent.
+# * the probability of `Time` can influence probability of `WorkCapacity` (and vice versa).
 #
 # Similarly, the same kinds of statements can be made for the other causal chain pathways in the graph:
 #
 # $$
-# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Burglary} \longrightarrow \text{Alarm} \longrightarrow \text{JohnCalls}}
+# \color{Green}{ \text{InjuryType (unobserved): }\;\;\;\;\;\;\;\;\; \text{ProcessType} \longrightarrow \text{Injury} \longrightarrow \text{AbsenteeismLevel}}
 # $$
-# Given that the state of `Alarm` is unobserved, we can make the following equivalent statements:
-# * there IS an active trail between `Burglary` and `JohnCalls`.
-# * the random variables `Burglary` and `JohnCalls` are dependent.
-# * the probability of `Burglary` can influence probability of `JohnCalls` (and vice versa).
+# Given that the state of `InjuryType` is unobserved, we can make the following equivalent statements:
+# * there IS an active trail between `ProcessType` and `AbsenteeismLevel`.
+# * the random variables `ProcessType` and `AbsenteeismLevel` are dependent.
+# * the probability of `ProcessType` can influence probability of `AbsenteeismLevel` (and vice versa).
 #
-# $$
-# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longrightarrow \text{Alarm} \longrightarrow \text{MaryCalls}}
-# $$
-# Given that the state of `Alarm` is unobserved, we can make the following equivalent statements:
-# * there IS an active trail between `Earthquake` and `MaryCalls`.
-# * the random variables `Earthquake` and `MaryCalls` are dependent.
-# * the probability of `Earthquake` can influence probability of `MaryCalls` (and vice versa).
-#
-# $$
-# \color{Green}{ \text{Alarm (unobserved): }\;\;\;\;\;\;\;\;\; \text{Earthquake} \longrightarrow \text{Alarm} \longrightarrow \text{JohnCalls}}
-# $$
-# Given that the state of `Alarm` is unobserved, we can make the following equivalent statements:
-# * there IS an active trail between `Earthquake` and `JohnCalls`.
-# * the random variables `Earthquake` and `JohnCalls` are dependent.
-# * the probability of `Earthquake` can influence probability of `JohnCalls` (and vice versa).
-# %% markdown [markdown]
-# **Verify:** Using Active Trails
-# %% codecell
-assert alarmModel.is_active_trail(start = Burglary.var, end = MaryCalls.var, observed = None)
-assert alarmModel.is_active_trail(start = Burglary.var, end = JohnCalls.var, observed = None)
-assert alarmModel.is_active_trail(start = Earthquake.var, end = MaryCalls.var, observed = None)
-assert alarmModel.is_active_trail(start = Earthquake.var, end = JohnCalls.var, observed = None)
-
-showActiveTrails(model = alarmModel, variables = [Burglary.var, MaryCalls.var])
 
 # %% codecell
-elim: VariableElimination = VariableElimination(model = alarmModel)
+from pgmpy.inference.CausalInference import CausalInference
+
+
+def getEvidenceBackdoors(model: BayesianModel, queryVar: Variable):
+    inference: CausalInference = CausalInference(model)
+
+    evidenceVars = model.predecessors(queryVar) #model.get_parents(queryVar)
+
+    # Getting the variables that will be used as evidence / observed to influence active trails (in other words,
+    # the variables that must be set as observed in the query of variable elimination)
+    observedVars = set([inference.get_all_backdoor_adjustment_sets(X = evVar, Y = queryVar)
+                        for evVar in evidenceVars])
+    # remove null forzen sets
+    observedVars = list(filter(lambda fset: fset != frozenset(), observedVars))
+
+    backdoorChoices: List[List[Variable]] = list(itertools.chain(*[[list(innerF) for innerF in outerF] for outerF in observedVars]))
+
+    return backdoorChoices
+
+# %% codecell
+# Can just choose first or any one of these, since either or of these elements inside above list will be satisfactory
+
+
+mod:BayesianModel = BayesianModel([
+    ('A', 'B'), ('A', 'X'), ('C', 'B'), ('C', 'Y'), ('B', 'X'), ('X', 'Y')
+])
+infmod = CausalInference(mod)
+#fsets = infmod.get_all_backdoor_adjustment_sets('X', 'Y')
+#fsets
+
+#mod.get_parents(node = 'X')
+getEvidenceBackdoors(mod, queryVar = 'Y')
+
+lst = getEvidenceBackdoors(carModel, queryVar = AbsenteeismLevel.var); lst
+
+#mod.is_active_trail(start = 'A', end = 'Y', observed = None)
+#mod.is_active_trail(start = 'A', end = 'Y', observed = ['X', 'A', 'B'])
+#mod.is_active_trail(start = 'A', end = 'Y', observed = ['X', 'C'])
+
+
+# TODO left off here
+assert carModel.is_active_trail(start = ToolType.var, end = AbsenteeismLevel.var, observed = None)
+assert not carModel.is_active_trail(start = ToolType.var, end = AbsenteeismLevel.var, observed = [InjuryType.var] + lst[0])
+#carModel.is_active_trail(start = ToolType.var, end = AbsenteeismLevel.var, observed = [InjuryType.var] + lst[1])
+
+inference.get_all_backdoor_adjustment_sets(ToolType.var, AbsenteeismLevel.var)
+
+carModel.is_active_trail(start = Time.var, end = WorkCapacity.var, observed = None)
+carModel.is_active_trail(start = Time.var, end = WorkCapacity.var, observed = [ExperienceLevel.var, Time.var])
+
+assert carModel.is_active_trail(start = Earthquake.var, end = MaryCalls.var, observed = None)
+assert carModel.is_active_trail(start = Earthquake.var, end = JohnCalls.var, observed = None)
+
+showActiveTrails(model = carModel, variables = [Burglary.var, MaryCalls.var])
+
+# %% codecell
+elim: VariableElimination = VariableElimination(model = carModel)
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities (example of $B \rightarrow A \rightarrow J$ trail)
@@ -547,12 +441,12 @@ assert (EM.values != EM_1.values).all() and (EM.values != EM_2.values).all(), "C
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert not alarmModel.is_active_trail(start = Burglary.var, end = MaryCalls.var, observed = Alarm.var)
-assert not alarmModel.is_active_trail(start = Burglary.var, end = JohnCalls.var, observed = Alarm.var)
-assert not alarmModel.is_active_trail(start = Earthquake.var, end = MaryCalls.var, observed = Alarm.var)
-assert not alarmModel.is_active_trail(start = Earthquake.var, end = JohnCalls.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = Burglary.var, end = MaryCalls.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = Burglary.var, end = JohnCalls.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = Earthquake.var, end = MaryCalls.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = Earthquake.var, end = JohnCalls.var, observed = Alarm.var)
 
-showActiveTrails(model = alarmModel, variables = [Burglary.var, MaryCalls.var], observed = Alarm.var)
+showActiveTrails(model = carModel, variables = [Burglary.var, MaryCalls.var], observed = Alarm.var)
 
 # %% markdown [markdown]
 # **Verify:** Using Independencies (just the $(B \; \bot \; M \; | \; A)$ independence)
@@ -563,14 +457,14 @@ indepMary: IndependenceAssertion = Independencies([MaryCalls.var, Burglary.var, 
 
 # Using the fact that closure returns independencies that are IMPLIED by the current independencies:
 assert (str(indepMary) == '(MaryCalls _|_ Burglary | Alarm)' and
-        indepMary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
+        indepMary in carModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
         "Check 1: Burglary and MaryCalls are independent once conditional on Alarm"
 
 assert (str(indepBurglary) == '(Burglary _|_ MaryCalls | Alarm)' and
-        indepBurglary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()), \
+        indepBurglary in carModel.local_independencies(MaryCalls.var).closure().get_assertions()), \
         "Check 2: Burglary and MaryCalls are independent once conditional on Alarm"
 
-alarmModel.local_independencies(MaryCalls.var).closure()
+carModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and Burglary are conditionally independent on Alarm:
@@ -661,13 +555,13 @@ assert (EAJ.values == EAJ_1.values).all() and (EAJ.values == EAJ_2.values).all()
 
 
 # %% markdown [markdown]
-# ### 2. Evidential Reasoning in the Alarm Model
+# ### 2. Evidential Reasoning in the Car Model
 # For an evidential model $A \leftarrow B \leftarrow C$, there are two cases:
 #   * **Marginal Dependence:** ($B$ unobserved): When $B$ is unobserved, there is an active trail between $A$  and $C$, meaning the probability of $A$ can influence probability of $C$ (and vice versa).
 #   * **Conditional Independence:** ($B$ observed): When $B$ is fixed, there is NO active trail between $A$ and $C$, so they are independent. The probability of $A$ won't influence probability of $C$ (and vice versa) when $B$'s state is observed.
 
 # %% codecell
-pgmpyToGraph(alarmModel)
+pgmpyToGraph(carModel)
 # %% markdown [markdown]
 # ### Case 1: Marginal Dependence (for Evidential Model)
 #
@@ -709,12 +603,12 @@ pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert alarmModel.is_active_trail(start = MaryCalls.var, end = Burglary.var,  observed = None)
-assert alarmModel.is_active_trail(start = MaryCalls.var, end = Earthquake.var, observed = None)
-assert alarmModel.is_active_trail(start = JohnCalls.var, end = Burglary.var, observed = None)
-assert alarmModel.is_active_trail(start = JohnCalls.var, end = Earthquake.var, observed = None)
+assert carModel.is_active_trail(start = MaryCalls.var, end = Burglary.var, observed = None)
+assert carModel.is_active_trail(start = MaryCalls.var, end = Earthquake.var, observed = None)
+assert carModel.is_active_trail(start = JohnCalls.var, end = Burglary.var, observed = None)
+assert carModel.is_active_trail(start = JohnCalls.var, end = Earthquake.var, observed = None)
 
-showActiveTrails(model = alarmModel, variables = [MaryCalls.var, Burglary.var])
+showActiveTrails(model = carModel, variables = [MaryCalls.var, Burglary.var])
 
 
 # %% markdown [markdown]
@@ -790,12 +684,12 @@ assert (JE.values != JE_1.values).all() and (JE.values != JE_2.values).all(), "C
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert not alarmModel.is_active_trail(start = MaryCalls.var, end = Burglary.var, observed = Alarm.var)
-assert not alarmModel.is_active_trail(start = MaryCalls.var, end = Earthquake.var, observed = Alarm.var)
-assert not alarmModel.is_active_trail(start = JohnCalls.var, end = Burglary.var, observed = Alarm.var)
-assert not alarmModel.is_active_trail(start = JohnCalls.var, end = Earthquake.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = MaryCalls.var, end = Burglary.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = MaryCalls.var, end = Earthquake.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = JohnCalls.var, end = Burglary.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = JohnCalls.var, end = Earthquake.var, observed = Alarm.var)
 
-showActiveTrails(model = alarmModel, variables = [JohnCalls.var, Earthquake.var], observed = Alarm.var)
+showActiveTrails(model = carModel, variables = [JohnCalls.var, Earthquake.var], observed = Alarm.var)
 
 # %% markdown [markdown]
 # **Verify:** Using Independencies (just the $(B \; \bot \; M \; | \; A)$ independence)
@@ -806,14 +700,14 @@ indepMary: IndependenceAssertion = Independencies([MaryCalls.var, Burglary.var, 
 
 # Using the fact that closure returns independencies that are IMPLIED by the current independencies:
 assert (str(indepMary) == '(MaryCalls _|_ Burglary | Alarm)' and
-        indepMary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
+        indepMary in carModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
         "Check 1: Burglary and MaryCalls are independent once conditional on Alarm"
 
 assert (str(indepBurglary) == '(Burglary _|_ MaryCalls | Alarm)' and
-        indepBurglary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()), \
+        indepBurglary in carModel.local_independencies(MaryCalls.var).closure().get_assertions()), \
         "Check 2: Burglary and MaryCalls are independent once conditional on Alarm"
 
-alarmModel.local_independencies(MaryCalls.var).closure()
+carModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and Burglary are conditionally independent on Alarm:
@@ -870,13 +764,13 @@ print(JAE)
 
 
 # %% markdown [markdown]
-# ### 3. Inter-Causal (?) Reasoning in the Alarm Model
+# ### 3. Inter-Causal (?) Reasoning in the Car Model
 # For a common cause model $A \leftarrow B \rightarrow C$, there are two cases:
 #   * **Marginal Dependence:** ($B$ unknown): When $B$ is unknown / unobserved, there is an active trail between $A$ and $C$, meaning the probability of $A$ can influence probability of $C$ (and vice versa) when information about $B$'s state is unknown.
 #   * **Conditional Independence:** ($B$ fixed): When $B$ is fixed, there is NO active trail between $A$ and $C$, so they are independent. The probability of $A$ won't influence probability of $C$ (and vice versa) when $B$'s state is observed.
 
 # %% codecell
-pgmpyToGraph(alarmModel)
+pgmpyToGraph(carModel)
 # %% markdown [markdown]
 # ### Case 1: Marginal Dependence (for Evidential Model)
 #
@@ -889,9 +783,9 @@ pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert alarmModel.is_active_trail(start = JohnCalls.var, end = MaryCalls.var,  observed = None)
+assert carModel.is_active_trail(start = JohnCalls.var, end = MaryCalls.var, observed = None)
 
-showActiveTrails(model = alarmModel, variables = [JohnCalls.var, MaryCalls.var])
+showActiveTrails(model = carModel, variables = [JohnCalls.var, MaryCalls.var])
 
 
 # %% markdown [markdown]
@@ -931,9 +825,9 @@ assert (JM.values != JM_1.values).all() and (JM.values != JM_2.values).all(), "C
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert not alarmModel.is_active_trail(start = JohnCalls.var, end = MaryCalls.var, observed = Alarm.var)
+assert not carModel.is_active_trail(start = JohnCalls.var, end = MaryCalls.var, observed = Alarm.var)
 
-showActiveTrails(model = alarmModel, variables = [JohnCalls.var, MaryCalls.var], observed = Alarm.var)
+showActiveTrails(model = carModel, variables = [JohnCalls.var, MaryCalls.var], observed = Alarm.var)
 
 # %% markdown [markdown]
 # **Verify:** Using Independencies
@@ -945,16 +839,16 @@ indepMary: IndependenceAssertion = Independencies([MaryCalls.var, JohnCalls.var,
 
 # Using the fact that closure returns independencies that are IMPLIED by the current independencies:
 assert (str(indepMary) == '(MaryCalls _|_ JohnCalls | Alarm)' and
-        indepMary in alarmModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
+        indepMary in carModel.local_independencies(MaryCalls.var).closure().get_assertions()),  \
         "Check 1: MaryCalls and JohnCalls are independent once conditional on Alarm"
 
-alarmModel.local_independencies(MaryCalls.var).closure()
+carModel.local_independencies(MaryCalls.var).closure()
 # %% codecell
 assert (str(indepJohn) == '(JohnCalls _|_ MaryCalls | Alarm)' and
-        indepJohn in alarmModel.local_independencies(JohnCalls.var).closure().get_assertions()), \
+        indepJohn in carModel.local_independencies(JohnCalls.var).closure().get_assertions()), \
         "Check 2: JohnCalls and MaryCalls are independent once conditional on Alarm"
 
-alarmModel.local_independencies(MaryCalls.var).closure()
+carModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and JohnCalls are conditionally independent on Alarm:
@@ -1021,14 +915,14 @@ print(MAJ)
 
 
 # %% markdown [markdown]
-# ### 4. Inter-Causal Reasoning in the Alarm Model
+# ### 4. Inter-Causal Reasoning in the Car Model
 # For a common evidence model $A \rightarrow B \leftarrow C$, there are two cases:
 #   * **Marginal Independence:** ($B$ unknown): When $B$ is unknown / unobserved, there is NO active trail between $A$ and $C$; they are independent. The probability of $A$ won't influence probability of $C$ (and vice versa) when $B$'s state is unknown.
 #   * **Conditional Dependence:** ($B$ fixed): When $B$ is fixed, there IS an active trail between $A$ and $C$, meaning the probability of $A$ can influence probability of $C$ (and vice versa) when information about $B$ is observed / fixed.
 
 
 # %% codecell
-pgmpyToGraph(alarmModel)
+pgmpyToGraph(carModel)
 # %% markdown [markdown]
 # ### Case 1: Marginal Independence (for Common Evidence Model)
 #
@@ -1041,23 +935,23 @@ pgmpyToGraph(alarmModel)
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert not alarmModel.is_active_trail(start = Burglary.var, end = Earthquake.var, observed = None)
+assert not carModel.is_active_trail(start = Burglary.var, end = Earthquake.var, observed = None)
 
-showActiveTrails(model = alarmModel, variables = [Burglary.var, Earthquake.var])
+showActiveTrails(model = carModel, variables = [Burglary.var, Earthquake.var])
 
 # %% markdown [markdown]
 # **Verify:** Using Independencies
 # %% codecell
 indepBurgEarth = Independencies([Burglary.var, Earthquake.var])
 
-assert indepBurgEarth == alarmModel.local_independencies(Burglary.var), 'Check 1: Burglary and Earthquake are marginally independent'
+assert indepBurgEarth == carModel.local_independencies(Burglary.var), 'Check 1: Burglary and Earthquake are marginally independent'
 
-assert indepBurgEarth == alarmModel.local_independencies(Earthquake.var), 'Check 2: Burglary and Earthquake are marginally independent'
+assert indepBurgEarth == carModel.local_independencies(Earthquake.var), 'Check 2: Burglary and Earthquake are marginally independent'
 
 
 # See: MaryCalls and Burglary are marginally independent :
-print(indepSynonymTable(model = alarmModel, queryNode = Burglary.var))
-print(indepSynonymTable(model = alarmModel, queryNode = Earthquake.var))
+print(indepSynonymTable(model = carModel, queryNode = Burglary.var))
+print(indepSynonymTable(model = carModel, queryNode = Earthquake.var))
 
 
 # %% markdown [markdown]
@@ -1096,9 +990,9 @@ print(BE)
 # %% markdown [markdown]
 # **Verify:** Using Active Trails
 # %% codecell
-assert alarmModel.is_active_trail(start = Burglary.var, end = Earthquake.var,  observed = Alarm.var)
+assert carModel.is_active_trail(start = Burglary.var, end = Earthquake.var, observed = Alarm.var)
 
-showActiveTrails(model = alarmModel, variables = [Burglary.var, Earthquake.var], observed = Alarm.var)
+showActiveTrails(model = carModel, variables = [Burglary.var, Earthquake.var], observed = Alarm.var)
 
 
 # %% markdown [markdown]

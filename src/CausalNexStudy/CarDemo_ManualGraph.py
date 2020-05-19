@@ -243,6 +243,8 @@ bayesNet.fit_cpds(data, method="BayesianEstimator", bayes_prior="K2")
 # Because `Time` has no incoming nodes, only outgoing nodes, its conditional distribution is also its *fully* marginal distribution - it is not conditional on any other variable.
 # %% codecell
 bayesNet.cpds[Time.var]
+# %% codecell
+bayesNet.cpds[ToolType.var]
 # %% markdown [markdown]
 # $\color{green}{\text{SUCCESS:}}$
 #
@@ -278,6 +280,8 @@ bayesNet.cpds[WorkCapacity.var]
 # * (e) Given **process-type** = `Oil-Fill` and **tool-type** = `Oil`, the most likely **injury-type** = either `Chemical-Burn` or `Electrical-Shock`. (NOTE: focused on `Chemical-Burn` in data set so that is why the other option does not have high probability)
 # %% codecell
 bayesNet.cpds[InjuryType.var]
+
+
 
 # %% markdown [markdown]
 # * $\color{blue}{\text{DEBUG}}:$ case (a): the **injury-type** = `Chemical-Burn` came out with probability = $0.496711$ (so basically the highest probability in the CPD) when **tool-type** = `Forklift` and **process-type** = `Engine-Mount` because there was higher frequency of **injury-type** = `Chemical-Burn` in the data, when conditional on these variable states. Just see the snapshot of the data below for the `Forklift` section:

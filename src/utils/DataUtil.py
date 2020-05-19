@@ -9,7 +9,9 @@ import pandas as pd
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
-from pgmpy.factors.discrete.CPD import TabularCPD
+from pgmpy.models import BayesianModel
+from pgmpy.factors.discrete import TabularCPD
+
 
 
 
@@ -107,3 +109,28 @@ def makeWhiteNoiseData(dataDict: Dict[Variable, List[State]],
 # ----------------------------------------------------------------------------------------------
 
 # TODO put data frame to tabular cpd over here
+
+
+
+
+def pgmpyTabularToDataFrame(model: BayesianModel, queryVar: Variable) -> DataFrame:
+    # Get the Tabular CPD (learned) from the model:
+    queryTCPD: TabularCPD = model.get_cpds(queryVar)
+
+    # Get names of variables (evidence vars) whose combos of states will go on top of the data frame
+    evidenceVars: List[Variable] = list(queryTCPD.state_names.keys())[1:]
+
+    # Get all state names mapped to each variable
+    states: List[State] = list(queryTCPD.state_names.values())
+
+    # Create combinations of states to go on the horizontal part of the CPD dataframe
+    evidenceStateCombos: List[Tuple[State, State]] = list(itertools.product(*states[1:]))
+
+    # note: Avoiding error thrown when passing empty list of tuples to MultiIndex
+    topColNames = [''] if evidenceVars == [] else pd.MultiIndex.from_tuples(evidenceStateCombos, names=evidenceVars)
+
+
+    df: DataFrame = DataFrame(data = queryTCPD.get_values(), index = states[0], columns = topColNames)
+    df.index.name = queryVar
+
+    return df
