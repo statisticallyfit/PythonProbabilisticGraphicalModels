@@ -26,7 +26,7 @@ sys.path.append(curPath + 'fonts/')
 
 sys.path
 
-# %% markdown
+# %% markdown [markdown]
 # Importing
 # %% codecell
 
@@ -42,7 +42,7 @@ from src.utils.GraphvizUtil import *
 
 import collections
 
-# %% markdown
+# %% markdown [markdown]
 # ## Step 1: Creating the data
 # %% codecell
 
@@ -165,7 +165,7 @@ data = usecaseData
 
 
 
-# %% markdown
+# %% markdown [markdown]
 # ## Step 2: Creating the Network Structure
 
 
@@ -216,7 +216,7 @@ viz.draw(filename_demo)
 Image(filename_demo)
 
 
-# %% markdown
+# %% markdown [markdown]
 # ## Step 3: Create the Bayesian Model and Fit CPDs
 # %% codecell
 # Checking the structure is acyclic before passing it to bayesian network:
@@ -227,7 +227,7 @@ assert nx.is_directed_acyclic_graph(carModel)
 # Now fit bayesian model
 bayesNet: BayesianNetwork = BayesianNetwork(carModel)
 
-# %% markdown
+# %% markdown [markdown]
 # Fit node states
 # %% codecell
 bayesNet.fit_node_states(df = data)
@@ -243,19 +243,19 @@ bayesNet.fit_cpds(data, method="BayesianEstimator", bayes_prior="K2")
 # Because `Time` has no incoming nodes, only outgoing nodes, its conditional distribution is also its *fully* marginal distribution - it is not conditional on any other variable.
 # %% codecell
 bayesNet.cpds[Time.var]
-# %% markdown
+# %% markdown [markdown]
 # $\color{green}{\text{SUCCESS:}}$
 #
 # 1. as **time** increases, it is more likely that **exertion-level** rises also.
 # %% codecell
 bayesNet.cpds[ExertionLevel.var]
-# %% markdown
+# %% markdown [markdown]
 # $\color{green}{\text{SUCCESS:}}$
 #
 # 1. as **time** increases, it is more likely that **experience-level** rises also.
 # %% codecell
 bayesNet.cpds[ExperienceLevel.var]
-# %% markdown
+# %% markdown [markdown]
 # $\color{green}{\text{SUCCESS:}}$
 #
 # 1. as **time** increases, it is more likely that **training-level** rises also.
@@ -263,14 +263,14 @@ bayesNet.cpds[ExperienceLevel.var]
 bayesNet.cpds[TrainingLevel.var]
 
 
-# %% markdown
+# %% markdown [markdown]
 # $\color{red}{\text{TODO: why isn't work capacity reflecting HIGH --> LOW??}}$
 #
 # * (a) $\color{red}{\text{X}}$ As **time** increases, the **exertion-level** rises and **experience-level** rises and **training-level** rises which in turn might raise **work-capacity**.
 # * (b)  $\color{red}{\text{X}}$  As **time** increases more, the **exertion-level**, **experience-level**, **training-level** may all rise but at a specific point in time, the **exertion-level** may be high enough to lower **work-capacity** more than in Scenario 1, despite the higher levels of **experience-level** and **training-level**.
 # %% codecell
 bayesNet.cpds[WorkCapacity.var]
-# %% markdown
+# %% markdown [markdown]
 # $\color{green}{\text{SUCCESS: }}$
 #
 # * (a) Given **process-type** = `Engine-Mount` and **tool-type** = `Forklift` the most likely **injury-type** = `Contact-Contusion` or even `Fall-Gtm` rather than things like `Chemical-Burn`. $\color{red}{\text{Actually, Chemical-Burn turns out high probablility ...? todo}}$
@@ -279,7 +279,7 @@ bayesNet.cpds[WorkCapacity.var]
 # %% codecell
 bayesNet.cpds[InjuryType.var]
 
-# %% markdown
+# %% markdown [markdown]
 # * $\color{blue}{\text{DEBUG}}:$ case (a): the **injury-type** = `Chemical-Burn` came out with probability = $0.496711$ (so basically the highest probability in the CPD) when **tool-type** = `Forklift` and **process-type** = `Engine-Mount` because there was higher frequency of **injury-type** = `Chemical-Burn` in the data, when conditional on these variable states. Just see the snapshot of the data below for the `Forklift` section:
 
 # %% codecell
@@ -287,7 +287,7 @@ bayesNet.cpds[InjuryType.var]
 usecaseData[(usecaseData.ProcessType == 'Engine-Mount') &
             (usecaseData.Time == 1) &
             (usecaseData.ToolType == 'Forklift')]
-# %% markdown
+# %% markdown [markdown]
 # * $\color{blue}{\text{DEBUG}}:$ case (b): there was even probability (both high compared to rest) for values `Electrical-Shock` and `Fall-Gtm` when **process-type** = `Engine-Wiring` and **tool-type** = `Power-Gun`, which reflects what was in the data (but not what was specified in the use case)
 # %% codecell
 
@@ -295,7 +295,7 @@ usecaseData[(usecaseData.ProcessType == 'Engine-Wiring') &
             (usecaseData.Time == 1) &
             (usecaseData.ToolType == 'Power-Gun')]
 
-# %% markdown
+# %% markdown [markdown]
 # * **work-capacity** = `High` when **absenteeism-level** = `Low` with probability $0.750$
 # * $\color{red}{\text{TODO}}:$ why is it true that there are equally likely probabilities everywhere else?
 # %% codecell
@@ -303,7 +303,7 @@ bayesNet.cpds[AbsenteeismLevel.var]
 
 
 
-# %% markdown
+# %% markdown [markdown]
 # ## Step 4: Inference (querying marginals)
 # %% codecell
 from causalnex.inference import InferenceEngine
@@ -315,11 +315,11 @@ eng = InferenceEngine(bn = bayesNet)
 marginalDist: Dict[Variable, Dict[State, Probability]] = eng.query()
 marginalDist
 
-# %% markdown
+# %% markdown [markdown]
 # Checking marginal distribution of **work-capacity**:
 # %% codecell
 eng.query()[WorkCapacity.var]
-# %% markdown
+# %% markdown [markdown]
 # Biasing so that lower work capacity probability gets higher:
 # %% codecell
 # NOTE: in the data, in TIME + 30, when exertion, training, experience are all HIGH, the work-capacity = LOW
@@ -341,13 +341,13 @@ eng.query({Time.var : 26, ExertionLevel.var : 'Medium', TrainingLevel.var : 'Med
 
 eng.query({Time.var : 2, ExertionLevel.var : 'Low', TrainingLevel.var : 'Low', ExperienceLevel.var : 'Low'})[WorkCapacity.var]
 
-# %% markdown
+# %% markdown [markdown]
 # ## Step 5: Reasoning via Active Trails
 # ### 1/ Reasoning via Active Trails along Causal Chains in the Car Model
 # %% codecell
 structToGraph(carModel)
 
-# %% markdown
+# %% markdown [markdown]
 # #### Testing conditional independence:
 # $$
 # \color{DodgerBlue}{\text{ExertionLevel (observed)}: \;\;\;\;\;\;\;  \text{Time} \; \bot \; \text{WorkCapacity} \; | \; \text{ExertionLevel}}
@@ -366,10 +366,10 @@ eng.query({Time.var : 23, ExertionLevel.var : 'High'})[WorkCapacity.var]
 eng.query({Time.var : 11, ExertionLevel.var : 'High'})[WorkCapacity.var]
 
 
-# %% markdown
+# %% markdown [markdown]
 # $\color{green}{\text{SUCCESS}}$ the probabilities ARE different, signifying an active trail between Time and WorkCapacity.
 
-# %% markdown
+# %% markdown [markdown]
 # #### Testing the causal chain:
 # $$
 # \color{SeaGreen}{\text{ExertionLevel (unobserved)}: \;\;\;\;\;\;\; \text{Time} \rightarrow \text{ExertionLevel} \rightarrow \text{WorkCapacity}}
@@ -387,7 +387,7 @@ eng.query({Time.var : 5})[WorkCapacity.var]
 eng.query({Time.var : 23})[WorkCapacity.var]
 # %% codecell
 eng.query({Time.var : 11})[WorkCapacity.var]
-# %% markdown
+# %% markdown [markdown]
 # $\color{red}{\text{TODO Problem!: }}$ Not supposed to be dependent probabilities (different distributions) when Exertion is not observed, so why are the probabilities different?
 
 
@@ -395,12 +395,12 @@ eng.query({Time.var : 11})[WorkCapacity.var]
 
 
 
-# %% markdown
+# %% markdown [markdown]
 # ### 4/ Reasoning via Active Trails along Common Effect Structures in the Car Model
 # %% codecell
 structToGraph(carModel)
 
-# %% markdown
+# %% markdown [markdown]
 # #### Testing marginal independence:
 # $$
 # \color{DodgerBlue}{\text{AbsenteeismLevel (unobserved)}: \;\;\;\;\;\;\;  \text{InjuryType} \; \bot \; \text{ProcessType} \; | \; \text{AbsenteeismLevel}}
@@ -418,12 +418,12 @@ eng.query({InjuryType.var : 'Electrical-Shock'})[ProcessType.var]
 # %% codecell
 eng.query({InjuryType.var : 'Chemical-Burn'})[ProcessType.var]
 
-# %% markdown
+# %% markdown [markdown]
 # $\color{red}{\text{TODO Problem!: }}$ Not supposed to be dependent probabilities (different distributions)
 
 
 
-# %% markdown
+# %% markdown [markdown]
 # #### Testing the inter-causal chain:
 # $$
 # \color{SeaGreen}{\text{AbsenteeismLevel (observed)}: \;\;\;\;\;\;\; \text{InjuryType} \Longrightarrow \text{AbsenteeismLevel} \Longleftarrow \text{ProcessType}}
