@@ -243,22 +243,69 @@ pgmpyToGraph(carModel)
 #
 
 # %% codecell
-vals = [{'A'}, {'B', 'C'}, {'D', 'E', 'A'}, {'D', 'R', 'C', 'B'}]
-combos = list(itertools.combinations(vals, r = 2)); combos
-# 1. create combination tuples
-# 2. check if the one is the superset of the other, if so, then unionize them, else they go separate
-# 3. remove duplicates
-for first, sec in combos:
-    if first.issubset(sec) or first.issuperset(sec):
-        unions.append(first.union(sec))
-    else:
-        unions.append(first)
-        unions.append(sec)
+def mergeSubsetsInList(varSetList: List[Set[Variable]]) -> List[List[Variable]]:
 
-list(map(lambda lst : set(lst), np.unique(list(map(lambda sett : list(sett), unions)))))
-combos[1][0].issubset(combos[1][1])
-combos[1][0]
-combos[1][1]
+    # Step 1: create combination tuples
+    combos = list(itertools.combinations(varSetList, r = 2)); combos
+
+
+    # STEP 2a) gathered the same key values under the same key
+    gather = dict()
+    #counter = 0
+    #('A','B') in {('A','B'):[1,2,3]}
+    for i in range(0, len(combos)-1):
+        curKey, curValue = combos[i]
+        nextKey, nextValue = combos[i+1]
+
+        curKey: Tuple[Variable] = tuple(curKey) # so that it becomes hashable to allow search in the dict
+
+        # Replacing the value or adding to it at the current key, leaving next key for next time if different.
+        valueAdd: List[Set[Variable]] = [curValue, nextValue] if curKey == nextKey else [curValue]
+        gather[curKey] = valueAdd if curKey not in gather.keys() else gather[curKey] + valueAdd
+
+    # Now do the last value:
+    curKey, curValue = combos[len(combos)-1]
+    curKey = tuple(curKey) # make hashable
+    gather[curKey] = curValue
+
+    # STEP 2b) For each key : list pair in the dict, ...flag if have merged with the value: IF NOT MERGED ANY: gather just the key ('A') ELSE IF have merged at least once, then gather just the merged results
+    merged = []
+
+    for source, sets in gather.items():
+
+        haveMerged = False
+
+        for aset in sets:
+            if set(source).issubset(aset) or set(source).issuperset(aset):
+                haveMerged = True
+                merged.append(tuple(set(source).union(aset)))
+
+        if haveMerged == False:
+            merged.append(source) # adding as tuple to be able to remove duplicate easily later
+
+    # Clean up types in the merged result so it is list of list
+    return list(map(lambda tup: list(tup), set(merged)))
+# %% codecell
+vals = getPotentialObservedVars(model = carModel, startVar = ToolType.var, endVar = AbsenteeismLevel.var); vals
+mergeSubsetsInList(vals)
+
+# TODO this doesn't work
+mod2:BayesianModel = BayesianModel([
+    ('X', 'F'),
+    ('F', 'Y'),
+    ('C', 'X'),
+    ('A', 'C'),
+    ('A', 'D'),
+    ('D', 'X'),
+    ('D', 'Y'),
+    ('B', 'D'),
+    ('B', 'E'),
+    ('E', 'Y')
+])
+
+vals = getPotentialObservedVars(mod2, "X", "Y"); vals
+mergeSubsetsInList(vals)
+
 # %% codecell
 elim: VariableElimination = VariableElimination(model = carModel)
 
