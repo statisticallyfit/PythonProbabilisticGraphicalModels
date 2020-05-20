@@ -7,11 +7,14 @@ from pgmpy.independencies.Independencies import Independencies
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.factors.discrete import JointProbabilityDistribution
 from pgmpy.factors.discrete.DiscreteFactor import DiscreteFactor
+from pgmpy.inference.CausalInference import CausalInference
 
 from operator import mul
 from functools import reduce
 
 import itertools
+
+import collections
 
 
 # Type alias for clarity
@@ -297,3 +300,97 @@ def showActiveTrails(model: BayesianModel,
 
     trails: List[Trail] = activeTrails(model, variables, observed)
     print('\n'.join(trails))
+
+
+
+
+# ----------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+ARROW = "ARROW"
+PAIR = "PAIR"
+
+
+# Gets all backdoor adjustment sets between the query var and all other nodes in the graph.
+def backdoorAdjustSets(model: BayesianModel, endVar: Variable,
+                       notation: str = ARROW) -> Dict[Variable, List[Set[Variable]]]:
+
+    inference: CausalInference = CausalInference(model)
+
+    # Getting all the predecessors to get a more complete list of possible adjustment sets
+    # TODO: does this give the entire possible list of adjustment sets with each predecessor node, from the bottom
+    #  queryVar?
+    #predecessorVars = model.predecessors(queryVar) #model.get_parents(queryVar)
+    allVars = model.nodes()
+
+    # Getting the variables that will be used as evidence / observed to influence active trails (in other words,
+    # the variables that must be set as observed in the query of variable elimination)
+    varAndObservedPairs = set([ (startVar, inference.get_all_backdoor_adjustment_sets(X = startVar, Y = endVar))
+                                for startVar in allVars])
+    # remove null forzen sets
+    #pairsOfPredObservedVars = list(filter(lambda pair: pair[1] != frozenset(), pairsOfPredObservedVars))
+
+
+    # Attaching ev var to the frozen set adjustment sets (changing the frozenset datatype to be set on the inside and
+    # list on the outside)
+    backdoorChoices: List[Tuple[Variable, Set[Variable]]] = list(itertools.chain(
+        *[[ (startVar, set(innerF)) for innerF in outerF] if outerF != frozenset() else [(startVar, None)]
+          for startVar, outerF in varAndObservedPairs])
+    )
+
+    # Creating a dict to accumulate adjustment sets of the same keys (concatenating)
+    backdoorDict: Dict[Variable, List[Set[Variable]]] = {}
+
+    for startVar, adjustSets in backdoorChoices:
+
+        if startVar in backdoorDict.keys():
+            backdoorDict[startVar] = backdoorDict[startVar] + [adjustSets]
+        else:
+            backdoorDict[startVar] = [adjustSets]
+
+
+    if notation == ARROW: #use arrows
+        # Now creating the arrow between startvar and endvar (to make the path clear)
+        backdoorTrailDict: Dict[Trail, List[Set[Variable]]] = {}
+
+        for startVar, adjustLists in backdoorDict.items():
+            backdoorTrailDict[f"{startVar} --> {endVar}"] = adjustLists
+
+
+        return backdoorTrailDict
+    elif notation == PAIR:
+        Pair = collections.namedtuple("Pair", ["From", "To", "AdjustSets" ])
+
+        lists = []
+        for startVar, adjustLists in backdoorDict.items():
+            lists.append(Pair(From = startVar, To = endVar, AdjustSets = adjustLists))
+
+        return lists
+    else: # do some notation (if notation == None)
+        return backdoorDict
+
+
+
+
+# Uses backdoor adjustment sets to find potential observed variables that can nullify active trail nodes (for first
+# three models) and create active trail nodes (for common ev model)
+
+
+def getPotentialObservedVars(model: BayesianModel, startVar: Variable, endVar: Variable) -> List[Set[Variable]]:
+
+
+    startBackdoors: Dict[Variable, List[Set[Variable]]] = backdoorAdjustSets(model, endVar = startVar, notation = None)
+    endBackdoors: Dict[Variable, List[Set[Variable]]] = backdoorAdjustSets(model, endVar = endVar, notation = None)
+
+    shortenedResult: List[Set[Variable]] = startBackdoors[endVar] + endBackdoors[startVar]
+
+    shortenedResult = list(filter(lambda elem : elem != None, shortenedResult))
+
+    # If the list is empty then we must include the start and end vars so we can potentially nullify the active trail: thinking of test case processtype -> injurytype when the above shortenedresult == [] and where the startvar and endvar included as observed vars will nullify the active trail (no others are found)
+    shortenedResult = shortenedResult if shortenedResult != [] else [{startVar}, {endVar}]
+
+    return shortenedResult

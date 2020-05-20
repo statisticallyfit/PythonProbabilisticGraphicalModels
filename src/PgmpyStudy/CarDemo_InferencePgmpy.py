@@ -243,63 +243,25 @@ pgmpyToGraph(carModel)
 #
 
 # %% codecell
-from pgmpy.inference.CausalInference import CausalInference
+vals = [{'A'}, {'B', 'C'}, {'D', 'E', 'A'}, {'D', 'R', 'C', 'B'}]
+combos = list(itertools.combinations(vals, r = 2)); combos
+# 1. create combination tuples
+# 2. check if the one is the superset of the other, if so, then unionize them, else they go separate
+# 3. remove duplicates
+for first, sec in combos:
+    if first.issubset(sec) or first.issuperset(sec):
+        unions.append(first.union(sec))
+    else:
+        unions.append(first)
+        unions.append(sec)
 
-
-def getEvidenceBackdoors(model: BayesianModel, queryVar: Variable):
-    inference: CausalInference = CausalInference(model)
-
-    evidenceVars = model.predecessors(queryVar) #model.get_parents(queryVar)
-
-    # Getting the variables that will be used as evidence / observed to influence active trails (in other words,
-    # the variables that must be set as observed in the query of variable elimination)
-    observedVars = set([inference.get_all_backdoor_adjustment_sets(X = evVar, Y = queryVar)
-                        for evVar in evidenceVars])
-    # remove null forzen sets
-    observedVars = list(filter(lambda fset: fset != frozenset(), observedVars))
-
-    backdoorChoices: List[List[Variable]] = list(itertools.chain(*[[list(innerF) for innerF in outerF] for outerF in observedVars]))
-
-    return backdoorChoices
-
-# %% codecell
-# Can just choose first or any one of these, since either or of these elements inside above list will be satisfactory
-
-
-mod:BayesianModel = BayesianModel([
-    ('A', 'B'), ('A', 'X'), ('C', 'B'), ('C', 'Y'), ('B', 'X'), ('X', 'Y')
-])
-infmod = CausalInference(mod)
-#fsets = infmod.get_all_backdoor_adjustment_sets('X', 'Y')
-#fsets
-
-#mod.get_parents(node = 'X')
-getEvidenceBackdoors(mod, queryVar = 'Y')
-
-lst = getEvidenceBackdoors(carModel, queryVar = AbsenteeismLevel.var); lst
-
-#mod.is_active_trail(start = 'A', end = 'Y', observed = None)
-#mod.is_active_trail(start = 'A', end = 'Y', observed = ['X', 'A', 'B'])
-#mod.is_active_trail(start = 'A', end = 'Y', observed = ['X', 'C'])
-
-
-# TODO left off here
-assert carModel.is_active_trail(start = ToolType.var, end = AbsenteeismLevel.var, observed = None)
-assert not carModel.is_active_trail(start = ToolType.var, end = AbsenteeismLevel.var, observed = [InjuryType.var] + lst[0])
-#carModel.is_active_trail(start = ToolType.var, end = AbsenteeismLevel.var, observed = [InjuryType.var] + lst[1])
-
-inference.get_all_backdoor_adjustment_sets(ToolType.var, AbsenteeismLevel.var)
-
-carModel.is_active_trail(start = Time.var, end = WorkCapacity.var, observed = None)
-carModel.is_active_trail(start = Time.var, end = WorkCapacity.var, observed = [ExperienceLevel.var, Time.var])
-
-assert carModel.is_active_trail(start = Earthquake.var, end = MaryCalls.var, observed = None)
-assert carModel.is_active_trail(start = Earthquake.var, end = JohnCalls.var, observed = None)
-
-showActiveTrails(model = carModel, variables = [Burglary.var, MaryCalls.var])
-
+list(map(lambda lst : set(lst), np.unique(list(map(lambda sett : list(sett), unions)))))
+combos[1][0].issubset(combos[1][1])
+combos[1][0]
+combos[1][1]
 # %% codecell
 elim: VariableElimination = VariableElimination(model = carModel)
+
 
 # %% markdown [markdown]
 # **Verify:** Using Probabilities (example of $B \rightarrow A \rightarrow J$ trail)
