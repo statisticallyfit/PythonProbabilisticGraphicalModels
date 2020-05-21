@@ -385,3 +385,9 @@ print(EA_3)
 # %% codecell
 
 assert not allEqual(EA.values, EA_1.values, EA_2.values, EA_3.values), "Check: the random variables Experience and Absenteeism are dependent, when intermediary node WorkCapacity is NOT observed (while accounting for backdoors)"
+
+
+
+# %% codecell
+# TODO: create "getallcausalchainswithinmodel" function , where we traverse each path and get all three-way causal chains
+# TODO do the same for common parent and common effect models
