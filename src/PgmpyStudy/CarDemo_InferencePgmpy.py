@@ -265,18 +265,137 @@ carModel.local_independencies(WorkCapacity.var).closure().get_assertions()
 # &= P(\text{WorkCapacity} = \text{Low} \; | \; \text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = n_i)  \\
 # &= P(\text{WorkCapacity} = \text{Low} \; | \; \text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = n_j) \\
 # &= P(\text{WorkCapacity} = \text{Low} \; | \; \text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = n_k) \\
-# &= 0.02
+# &= ***
+# \end{array}
+#
+# $$
+# $\color{red}{\text{TODO not true below why are probabilities different???}}$
+# %% codecell
+OBS_STATE_EXERTION: State = 'Low'
+OBS_STATE_TIME: int = 23
+
+TEW: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : OBS_STATE_EXERTION})
+print(TEW)
+# %% codecell
+TEW_1: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : OBS_STATE_EXERTION, Time.var : 1})
+print(TEW_1)
+# %% codecell
+TEW_2: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : OBS_STATE_EXERTION, Time.var : 10})
+print(TEW_2)
+# %% codecell
+TEW_3: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : OBS_STATE_EXERTION, Time.var : 30})
+print(TEW_3)
+# %% markdown
+#
+# The probabilities above are stated formulaically as follows:
+#
+# $$
+# \begin{array}{ll}
+# P(\text{WorkCapacity} = \text{High} \; | \; \Big\{  \text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23  \Big\}) \\
+# = P(\text{WorkCapacity} = \text{High} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 1)  \\
+# = P(\text{WorkCapacity} = \text{High} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 10) \\
+# = P(\text{WorkCapacity} = \text{High} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 30) \\
+# = 0.4989
 # \end{array}
 # $$
-# %% codecell
-# (T _|_ W | E)
-TEW: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : 'Low'})
-TEW_1: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : 'Low', Time.var : 1})
-TEW_2: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : 'Low', Time.var : 10})
-TEW_3: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : 'Low', Time.var : 26})
+#
+# $$
+# \begin{array}{ll}
+# P(\text{WorkCapacity} = \text{Low} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
+# = P(\text{WorkCapacity} = \text{Low} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 1)  \\
+# = P(\text{WorkCapacity} = \text{Low} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 10) \\
+# = P(\text{WorkCapacity} = \text{Low} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 30) \\
+# = 0.3994
+# \end{array}
+# $$
+#
+# $$
+# \begin{array}{ll}
+# P(\text{WorkCapacity} = \text{Medium} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
+# = P(\text{WorkCapacity} = \text{Medium} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 1)  \\
+# = P(\text{WorkCapacity} = \text{Medium} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 10) \\
+# = P(\text{WorkCapacity} = \text{Medium} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 30) \\
+# = 0.1017
+# \end{array}
+# $$
+# Since all the above stated probabilities are equal, we can assert that the random variables `Time` and `WorkCapacity` are independent of each other, when observing `ExertionLevel` state (and also observing the state of `Time` to adjust for backdoors). So letting the `backdoorStates` = `{ExertionLevel = Low, Time = 23}`, we can write:
+# $$
+# P(\text{WorkCapacity} \; | \; \{\texttt{backdoorStates} \}) = P(\text{WorkCapacity} \; | \; \{ \texttt{backdoorStates} \} \; \cap \; \text{Time})
+# $$
 
-print(TEW)
-print(TEW_1)
-print(TEW_2)
-print(TEW_3)
+
+
+
+
+
+
+
+# %% markdown
+# Testing using active trails
 # %% codecell
+assert carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = None)
+assert carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
+
+# Finding out which extra variable to condition on:
+assert observedVars(carModel, startVar = ExperienceLevel.var, endVar = AbsenteeismLevel.var) == [{'Time', 'WorkCapacity'}], "Check: all list of extra variables to condition on to nullify active trail between Experience and Absenteeism"
+
+# Check trail is nullified
+assert not carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = [WorkCapacity.var] + [Time.var]), "Check: active trail between Experience and Absenteeism is nullified with the extra variable observed"
+
+
+
+# %% markdown
+# **Testing Conditional Independence:** Using Probabilities
+
+
+# %% codecell
+# TODO if there is no active trail from Experience -> Absenteeism when assuming WorkCapacity and Time are observed, then how come not including time as evidence here proves independence of Experience and Absenteeism?
+OBS_STATE_WORKCAPACITY: State = 'Low'
+OBS_STATE_TIME: int = 23
+
+EWA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var :OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME})
+
+EWA_1: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var: OBS_STATE_TIME, ExperienceLevel.var : 'High'})
+
+EWA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME, ExperienceLevel.var : 'Medium'})
+
+EWA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME, ExperienceLevel.var : 'Low'})
+
+print(EWA)
+# %% markdown
+#
+# The probabilities above are stated formulaically as follows:
+#
+# $$
+# \begin{array}{ll}
+# P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{  \text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23  \Big\}) \\
+# = P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low})  \\
+# = P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) \\
+# = P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) \\
+# = 0.4989
+# \end{array}
+# $$
+#
+# $$
+# \begin{array}{ll}
+# P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
+# = P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low})  \\
+# = P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) \\
+# = P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) \\
+# = 0.3994
+# \end{array}
+# $$
+#
+# $$
+# \begin{array}{ll}
+# P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
+# = P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low})  \\
+# = P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) \\
+# = P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) \\
+# = 0.1017
+# \end{array}
+# $$
+# Since all the above stated probabilities are equal, we can assert that the random variables `ExperienceLevel` and `AbsenteeismLevel` are independent of each other, when observing `WorkCapacity` state (and also observing the state of `Time` to adjust for backdoors). So letting the `backdoorStates` = `{WorkCapacity = Low, Time = 23}`, we can write:
+# $$
+# P(\text{AbsenteeismLevel} \; | \; \{\texttt{backdoorStates} \}) = P(\text{AbsenteeismLevel} \; | \; \{ \texttt{backdoorStates} \} \; \cap \; \text{ExperienceLevel})
+# $$
