@@ -380,7 +380,7 @@ def backdoorAdjustSets(model: BayesianModel, endVar: Variable,
 # three models) and create active trail nodes (for common ev model)
 
 
-def getPotentialObservedVars(model: BayesianModel, startVar: Variable, endVar: Variable) -> List[Set[Variable]]:
+def observedVars(model: BayesianModel, startVar: Variable, endVar: Variable) -> List[Set[Variable]]:
 
 
     startBackdoors: Dict[Variable, List[Set[Variable]]] = backdoorAdjustSets(model, endVar = startVar, notation = None)
@@ -393,4 +393,88 @@ def getPotentialObservedVars(model: BayesianModel, startVar: Variable, endVar: V
     # If the list is empty then we must include the start and end vars so we can potentially nullify the active trail: thinking of test case processtype -> injurytype when the above shortenedresult == [] and where the startvar and endvar included as observed vars will nullify the active trail (no others are found)
     shortenedResult = shortenedResult if shortenedResult != [] else [{startVar}, {endVar}]
 
-    return shortenedResult
+    return mergeSubsets(shortenedResult) # merge teh subsets within this list
+
+
+
+def mergeSubsets(varSetList: List[Set[Variable]]) -> List[List[Variable]]:
+
+    # Step 1: create combination tuples
+    combos = list(itertools.combinations(varSetList, r = 2)); combos
+
+
+    # STEP 2a) gathered the same key values under the same key
+    gather = dict()
+    #counter = 0
+    #('A','B') in {('A','B'):[1,2,3]}
+    for i in range(0, len(combos)-1):
+        curKey, curValue = combos[i]
+        nextKey, nextValue = combos[i+1]
+
+        curKey: Tuple[Variable] = tuple(curKey) # so that it becomes hashable to allow search in the dict
+
+        # Replacing the value or adding to it at the current key, leaving next key for next time if different.
+        valueAdd: List[Set[Variable]] = [curValue, nextValue] if curKey == nextKey else [curValue]
+        gather[curKey] = valueAdd if curKey not in gather.keys() else gather[curKey] + valueAdd
+
+    # Now do the last value:
+    curKey, curValue = combos[len(combos)-1]
+    curKey = tuple(curKey) # make hashable
+    gather[curKey] = [curValue]
+
+    # STEP 2b) For each key : list pair in the dict, ...flag if have merged with the value: IF NOT MERGED ANY: gather just the key ('A') ELSE IF have merged at least once, then gather just the merged results
+    merged = []
+
+    for sourceTuple, sets in gather.items():
+
+        sourceSet: Set[Variable] = set(sourceTuple)
+
+        for valueSet in sets:
+
+            if isOverlap(sourceSet, valueSet):
+
+                merged.append(tuple( sourceSet.union(valueSet) ))
+
+
+        if not haveMergedInPast(sourceSet, merged):
+            merged.append(sourceTuple) # adding as tuple to be able to remove duplicate easily later
+
+    # Clean up types in the merged result so it is list of sets
+    return list(map(lambda tup: set(tup), set(merged)))
+
+
+
+# if the result of the filter is empty then we have not merged that in the past, else if it is not empty then that
+# means we merged the sourceset in the past.
+def haveMergedInPast(sourceSet: Set[Variable], merged: List) -> bool:
+    zipSourceMerged: List[Tuple[Set[Variable], Set[Variable]]] = list(zip([sourceSet] * len(merged), merged))
+
+    pastMerges: List[Tuple[Set[Variable], Set[Variable]]] = list(filter(lambda tup : isOverlap(tup[0], tup[1]),
+                                                                        zipSourceMerged))
+    return len(pastMerges) != 0
+
+
+# Checks if either set is the subset of the other
+def isOverlap(set1: Set[Variable], set2: Set[Variable]) -> bool:
+    return set1.issubset(set2) or set1.issuperset(set2)
+
+
+# use case for above function
+'''
+mod2:BayesianModel = BayesianModel([
+    ('X', 'F'),
+    ('F', 'Y'),
+    ('C', 'X'),
+    ('A', 'C'),
+    ('A', 'D'),
+    ('D', 'X'),
+    ('D', 'Y'),
+    ('B', 'D'),
+    ('B', 'E'),
+    ('E', 'Y')
+])
+
+vals = getPotentialObservedVars(mod2, "X", "Y"); vals
+assert mergeSubsets(vals) == [{'D', 'E', 'F'}, {'C', 'D', 'F'}, {'A', 'D', 'F'}, {'B', 'D', 'F'}]
+
+'''

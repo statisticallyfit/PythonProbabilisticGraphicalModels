@@ -1,4 +1,9 @@
 # %% codecell
+
+from src.utils.NetworkUtil import *
+
+
+
 # get observed tars that act to disable active trail nodes in causal, evidential, models (except common ev)
 def all_getObservedVars(model: BayesianModel,
                     startVar: Variable,
@@ -59,7 +64,7 @@ mod2.is_active_trail(start = "B", end = "Y", observed = ['D', 'E', 'X'])
 
 # %% codecell
 # ---------
-getPotentialObservedVars(mod2, "X", "Y")
+observedVars(mod2, "X", "Y")
 
 mod2.is_active_trail(start = "X", end = "Y", observed = None)
 
@@ -81,7 +86,7 @@ inf.get_all_frontdoor_adjustment_sets(ToolType.var, AbsenteeismLevel.var)
 inf.get_all_frontdoor_adjustment_sets(AbsenteeismLevel.var, ToolType.var)
 
 
-getPotentialObservedVars(carModel, ToolType.var, AbsenteeismLevel.var)
+observedVars(carModel, ToolType.var, AbsenteeismLevel.var)
 
 
 # TODO left off here
@@ -105,7 +110,7 @@ inf.get_all_frontdoor_adjustment_sets(ProcessType.var, InjuryType.var)
 inf.get_all_frontdoor_adjustment_sets(InjuryType.var, ProcessType.var)
 
 
-getPotentialObservedVars(carModel, ProcessType.var, InjuryType.var)
+observedVars(carModel, ProcessType.var, InjuryType.var)
 
 
 carModel.is_active_trail(start = ProcessType.var, end = InjuryType.var, observed = None)

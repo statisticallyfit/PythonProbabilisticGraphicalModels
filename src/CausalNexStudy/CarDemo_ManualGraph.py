@@ -356,10 +356,11 @@ structToGraph(carModel)
 # $$
 # \color{DodgerBlue}{\text{ExertionLevel (observed)}: \;\;\;\;\;\;\;  \text{Time} \; \bot \; \text{WorkCapacity} \; | \; \text{ExertionLevel}}
 # $$
+
 # Given that **ExertionLevel**'s state is unobserved, we can make the following equivalent statements:
-# * there IS active trail between **Time** and **WorkCapacity**.
-# * **Time** and **WorkCapacity** are dependent.
-# * the probability of **Time** can influence probability of **WorkCapacity** (and vice versa).
+# * there is NO active trail between **Time** and **WorkCapacity**.
+# * **Time** and **WorkCapacity** are locally independent.
+# * the probability of **Time** won't influence probability of **WorkCapacity** (and vice versa).
 # %% codecell
 eng.query({Time.var : 30, ExertionLevel.var : 'High'})[WorkCapacity.var]
 # %% codecell
@@ -379,9 +380,9 @@ eng.query({Time.var : 11, ExertionLevel.var : 'High'})[WorkCapacity.var]
 # \color{SeaGreen}{\text{ExertionLevel (unobserved)}: \;\;\;\;\;\;\; \text{Time} \rightarrow \text{ExertionLevel} \rightarrow \text{WorkCapacity}}
 # $$
 # Given that **ExertionLevel**'s state is unobserved, we can make the following equivalent statements:
-# * there is NO active trail between **Time** and **WorkCapacity**.
-# * **Time** and **WorkCapacity** are locally independent.
-# * the probability of **Time** won't influence probability of **WorkCapacity** (and vice versa).
+# * there IS active trail between **Time** and **WorkCapacity**.
+# * **Time** and **WorkCapacity** are dependent.
+# * the probability of **Time** can influence probability of **WorkCapacity** (and vice versa).
 
 # %% codecell
 eng.query({Time.var : 30})[WorkCapacity.var]
