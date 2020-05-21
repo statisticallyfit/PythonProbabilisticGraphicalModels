@@ -97,7 +97,7 @@ def allEqual(*arrays: np.ndarray) -> bool:
 
     for array1, array2 in pairs:
         if not np.allclose(array1, array2):
-            break
+            return False
     return True
 
 
