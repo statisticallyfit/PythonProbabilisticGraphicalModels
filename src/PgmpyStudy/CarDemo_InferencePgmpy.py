@@ -56,6 +56,7 @@ from functools import reduce
 from src.utils.GraphvizUtil import *
 from src.utils.NetworkUtil import *
 from src.utils.DataUtil import *
+from src.utils.GenericUtil import *
 
 import pandas as pd
 from pandas.core.frame import DataFrame
@@ -205,9 +206,9 @@ pgmpyTabularToDataFrame(carModel, queryVar = AbsenteeismLevel.var)
 
 
 # %% markdown [markdown]
-# ## Inference in Bayesian Car Model
+# ## Step 4: Inference in Bayesian Car Model
 #
-# Now let us do inference in a  Bayesian model and predict values using this model over new data points for ML tasks.
+# Now let us verify active trails or independencies, for each kind of chain (causal, evidential, common cause, and common evidence) that can be found along the paths of the car model graph
 #
 # ### 1/ Causal Reasoning in the Car Model
 # For a causal model $A \rightarrow B \rightarrow C$, there are two cases:
@@ -220,120 +221,42 @@ pgmpyToGraph(carModel)
 # %% markdown [markdown]
 # #### Testing conditional independence:
 # $$
-# \color{DodgerBlue}{\text{ExertionLevel (observed)}: \;\;\;\;\;\;\;  \text{Time} \; \bot \; \text{WorkCapacity} \; | \; \text{ExertionLevel}}
+# \color{DodgerBlue}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{ExperienceLevel} \; \bot \; \text{AbsenteeismLevel} \; | \; \text{WorkCapacity}}
 # $$
 
-# Given that **ExertionLevel**'s state is unobserved, we can make the following equivalent statements:
-# * there is NO active trail between **Time** and **WorkCapacity**.
-# * **Time** and **WorkCapacity** are locally independent.
-# * the probability of **Time** won't influence probability of **WorkCapacity** (and vice versa).
+# Given that **WorkCapacity**'s state is observed, we can make the following equivalent statements:
+# * there is NO active trail between **ExperienceLevel** and **AbsenteeismLevel**.
+# * **ExperienceLevel** and **AbsenteeismLevel** are locally independent.
+# * the probability of **ExperienceLevel** won't influence probability of **AbsenteeismLevel** (and vice versa).
 #
 
 # %% codecell
 elim: VariableElimination = VariableElimination(model = carModel)
 
+
 # %% markdown
-# **Testing Conditional Independence:** Using Active Trails
+# **Testing Conditional Independence:** Using Independencies Methods
 #
-# Note here that we need to set another node `Time` as the `observed` variable, alongside the customary middle one `ExertionLevel`, because of the nature of the graph's dependencies (key concept = backdoor adjustment sets). Thus we set `Time` as `observed` also.
+# $\color{red}{\text{TODO}}$
 # %% codecell
-observedVars(carModel, startVar = Time.var, endVar = WorkCapacity.var)
+indep: IndependenceAssertion = Independencies([ExperienceLevel.var, AbsenteeismLevel.var, [WorkCapacity.var]]).get_assertions()[0]; indep
 # %% codecell
-assert not carModel.is_active_trail(start = Time.var, end = WorkCapacity.var, observed = [ExertionLevel.var] + [Time.var])
-
-# See, there is no active trail from time to work capacity when observing exertion and time.
-showActiveTrails(carModel, variables = [Time.var, WorkCapacity.var], observed = [ExertionLevel.var, Time.var])
-
-# %% markdown
-# **Testing Conditional Independence:** Using Independencies
+carModel.local_independencies(ExperienceLevel.var)
 # %% codecell
-indep: IndependenceAssertion = Independencies([Time.var, WorkCapacity.var, [ExertionLevel.var]]).get_assertions()[0]; indep
-
-carModel.local_independencies(Time.var)
+carModel.local_independencies(AbsenteeismLevel.var)
+# %% codecell
 # TODO this is false, why? how to now check conditional independence using independencies method???
 # NOTE also that there is never work capacity independent of time, which is what I wanted to show...
-indep in carModel.local_independencies(WorkCapacity.var).closure().get_assertions()
-
-carModel.local_independencies(WorkCapacity.var).closure().get_assertions()
-
-# %% markdown
-# **Testing Conditional Independence:** Using Probabilities
-# The probability below is: (letting $n_i$ be some number such that $1 \leq n_i \leq 30$)
-# $$
-# \begin{array}{ll}
-# P(\text{WorkCapacity} = \text{Low} \; | \; \text{ExertionLevel} = \text{Low})
-# &= P(\text{WorkCapacity} = \text{Low} \; | \; \text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = n_i)  \\
-# &= P(\text{WorkCapacity} = \text{Low} \; | \; \text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = n_j) \\
-# &= P(\text{WorkCapacity} = \text{Low} \; | \; \text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = n_k) \\
-# &= ***
-# \end{array}
-#
-# $$
-# $\color{red}{\text{TODO not true below why are probabilities different???}}$
+indep in carModel.local_independencies(AbsenteeismLevel.var).closure().get_assertions()
 # %% codecell
-OBS_STATE_EXERTION: State = 'Low'
-OBS_STATE_TIME: int = 23
-
-TEW: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : OBS_STATE_EXERTION})
-print(TEW)
-# %% codecell
-TEW_1: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : OBS_STATE_EXERTION, Time.var : 1})
-print(TEW_1)
-# %% codecell
-TEW_2: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : OBS_STATE_EXERTION, Time.var : 10})
-print(TEW_2)
-# %% codecell
-TEW_3: DiscreteFactor = elim.query(variables = [WorkCapacity.var], evidence = {ExertionLevel.var : OBS_STATE_EXERTION, Time.var : 30})
-print(TEW_3)
-# %% markdown
-#
-# The probabilities above are stated formulaically as follows:
-#
-# $$
-# \begin{array}{ll}
-# P(\text{WorkCapacity} = \text{High} \; | \; \Big\{  \text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23  \Big\}) \\
-# = P(\text{WorkCapacity} = \text{High} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 1)  \\
-# = P(\text{WorkCapacity} = \text{High} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 10) \\
-# = P(\text{WorkCapacity} = \text{High} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 30) \\
-# = 0.4989
-# \end{array}
-# $$
-#
-# $$
-# \begin{array}{ll}
-# P(\text{WorkCapacity} = \text{Low} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
-# = P(\text{WorkCapacity} = \text{Low} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 1)  \\
-# = P(\text{WorkCapacity} = \text{Low} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 10) \\
-# = P(\text{WorkCapacity} = \text{Low} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 30) \\
-# = 0.3994
-# \end{array}
-# $$
-#
-# $$
-# \begin{array}{ll}
-# P(\text{WorkCapacity} = \text{Medium} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
-# = P(\text{WorkCapacity} = \text{Medium} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 1)  \\
-# = P(\text{WorkCapacity} = \text{Medium} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 10) \\
-# = P(\text{WorkCapacity} = \text{Medium} \; | \; \Big\{\text{ExertionLevel} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{Time} = 30) \\
-# = 0.1017
-# \end{array}
-# $$
-# Since all the above stated probabilities are equal, we can assert that the random variables `Time` and `WorkCapacity` are independent of each other, when observing `ExertionLevel` state (and also observing the state of `Time` to adjust for backdoors). So letting the `backdoorStates` = `{ExertionLevel = Low, Time = 23}`, we can write:
-# $$
-# P(\text{WorkCapacity} \; | \; \{\texttt{backdoorStates} \}) = P(\text{WorkCapacity} \; | \; \{ \texttt{backdoorStates} \} \; \cap \; \text{Time})
-# $$
-
-
-
-
-
-
+carModel.local_independencies(AbsenteeismLevel.var).closure().get_assertions()
 
 
 # %% markdown
-# Testing using active trails
+# **Testing Conditional Independence:** Using Active Trails Methods
 # %% codecell
 assert carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = None)
+
 assert carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
 
 # Finding out which extra variable to condition on:
@@ -342,14 +265,12 @@ assert observedVars(carModel, startVar = ExperienceLevel.var, endVar = Absenteei
 # Check trail is nullified
 assert not carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = [WorkCapacity.var] + [Time.var]), "Check: active trail between Experience and Absenteeism is nullified with the extra variable observed"
 
-
+# See, there is no active trail from ExperienceLevel to AbsenteeismLevel when observing WorkCapacity and time.
+showActiveTrails(carModel, variables = [ExperienceLevel.var, AbsenteeismLevel.var], observed = [WorkCapacity.var, Time.var])
 
 # %% markdown
 # **Testing Conditional Independence:** Using Probabilities
-
-
 # %% codecell
-# TODO if there is no active trail from Experience -> Absenteeism when assuming WorkCapacity and Time are observed, then how come not including time as evidence here proves independence of Experience and Absenteeism?
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
@@ -395,7 +316,9 @@ print(EWA)
 # = 0.1017
 # \end{array}
 # $$
-# Since all the above stated probabilities are equal, we can assert that the random variables `ExperienceLevel` and `AbsenteeismLevel` are independent of each other, when observing `WorkCapacity` state (and also observing the state of `Time` to adjust for backdoors). So letting the `backdoorStates` = `{WorkCapacity = Low, Time = 23}`, we can write:
+# Since all the above stated probabilities are equal for each state of `AbsenteeismLevel` = `Low`, `Medium`, `High`, we can assert that the random variables `ExperienceLevel` and `AbsenteeismLevel` are independent of each other, when observing `WorkCapacity` state (and also observing the state of `Time` to adjust for backdoors). Arbitrarily choosing the states `backdoorStates` = `{WorkCapacity = Low, Time = 23}`, we can write:
 # $$
 # P(\text{AbsenteeismLevel} \; | \; \{\texttt{backdoorStates} \}) = P(\text{AbsenteeismLevel} \; | \; \{ \texttt{backdoorStates} \} \; \cap \; \text{ExperienceLevel})
 # $$
+# %% codecell
+assert allEqual(EWA.values, EWA_1.values, EWA_2.values, EWA_3.values), "Check: the random variables Experience and Absenteeism are independent, when intermediary node WorkCapacity is observed (while accounting for backdoors)"

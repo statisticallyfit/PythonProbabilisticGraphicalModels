@@ -1,6 +1,8 @@
 from typing import *
-import itertools
 
+
+import itertools
+import numpy as np
 
 
 Variable = str
@@ -84,6 +86,21 @@ def addDicts(*dicts: Dict[Variable, Set[Variable]]) -> Dict[Variable, Set[Variab
 
     return dict(itertools.chain(*listOfTupleList)) # using `chain` to flatten the list of lists
 '''
+
+
+
+# ----------------------------------------------------------------------------------------------------
+
+def allEqual(*arrays: np.ndarray) -> bool:
+    '''Checks the given (N) arrays are all equal'''
+    pairs = list(itertools.combinations(arrays, r = 2))
+
+    for array1, array2 in pairs:
+        if not np.allclose(array1, array2):
+            break
+    return True
+
+
 
 
 
