@@ -277,7 +277,6 @@ print(EWA)
 # = 0.4989
 # \end{array}
 # $$
-# %% markdown [markdown]
 # $$
 # \begin{array}{ll}
 # P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
@@ -287,7 +286,6 @@ print(EWA)
 # = 0.3994
 # \end{array}
 # $$
-# %% markdown [markdown]
 # $$
 # \begin{array}{ll}
 # P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
@@ -389,3 +387,46 @@ assert not allEqual(EA.values, EA_1.values, EA_2.values, EA_3.values), "Check: t
 # %% codecell
 # TODO: create "getallcausalchainswithinmodel" function , where we traverse each path and get all three-way causal chains
 # TODO do the same for common parent and common effect models
+model:BayesianModel = BayesianModel([
+    ('X', 'F'),
+    ('F', 'Y'),
+    ('C', 'X'),
+    ('A', 'C'),
+    ('A', 'D'),
+    ('D', 'X'),
+    ('D', 'Y'), ('E', 'R'), ('F', 'J'),
+    ('B', 'D'),
+    ('B', 'E'), ('A', 'Y'), ('O','B'),
+    ('E', 'Y'),
+    ('X','E'), ('D','E'), ('B', 'X'), ('B','F'), ('E','F'), ('C', 'F'), ('C', 'E'), ('C','Y')
+])
+pgmpyToGraph(model)
+
+# %% codecell
+# STEP 1: get all causal chains
+# STEP 2: get the nodes that go in the observed / evidence in order to  nullify active trails (the  middle node + the backdoors from getobservedvars function)
+
+edges: List[Tuple[Variable, Variable]] = list(iter(model.edges()))
+
+
+roots: List[Variable] = model.get_roots(); roots
+leaves: List[Variable] = model.get_leaves(); leaves
+
+# Create all possible causal chains from each node using the edges list (always going downward)
+
+# Create a causal trail (longest possible until reaching the leaves
+
+# METHOD 1: get longest possible trail from ROOT to LEAVES and only then do we chunk it into 3-node paths
+startEdges = list(filter(lambda tup: tup[0] in roots, edges)); startEdges
+interimNodes: List[Variable] = list(filter(lambda node: not (node in roots) and not (node in leaves), model.nodes())); interimNodes
+
+
+# Returns dict {varfromvarlist : [children]}
+def nodeChildPairs(model: BayesianModel, vars: List[Variable]) -> Dict[Variable, List[Variable]]:
+    return [{node : list(model.successors(n = node))} for node in vars]
+
+rootPairs: Dict[Variable, List[Variable]] = nodeChildPairs(model, roots); rootPairs
+midPairs = [(node, *list(model.successors(n = node)) ) for node in interimNodes]; midPairs
+
+
+# METHOD 2: for each edge, connect the tail and tip with matching ends
