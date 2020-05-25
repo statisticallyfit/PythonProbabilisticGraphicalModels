@@ -133,4 +133,4 @@ def pgmpyTabularToDataFrame(model: BayesianModel, queryVar: Variable) -> DataFra
     df: DataFrame = DataFrame(data = queryTCPD.get_values(), index = states[0], columns = topColNames)
     df.index.name = queryVar
 
-    return df
+    return df.transpose()
