@@ -478,3 +478,53 @@ vals = getPotentialObservedVars(mod2, "X", "Y"); vals
 assert mergeSubsets(vals) == [{'D', 'E', 'F'}, {'C', 'D', 'F'}, {'A', 'D', 'F'}, {'B', 'D', 'F'}]
 
 '''
+
+
+
+
+# ---------------------------------------------------------------------------------------------------------
+
+
+# Function that calculate the distributins based on variables given to pass as observed; we calculate the variable elimination based on all possible combos of the given variable states
+
+def eliminate(model: BayesianModel,
+              query: RandomVariable,
+              evidence: List[RandomVariable] = None) -> DataFrame:
+
+    elim = VariableElimination(model)
+
+    if evidence is None:
+        queryProbs: List[Probability] = marginalDist.values
+        topColNames = ['']
+        ordStateNames: List[State] = list(marginalDist.state_names.values())[0]
+        df: DataFrame = DataFrame(data = queryProbs, index = ordStateNames, columns = topColNames)
+        df.index.name = query.var
+        return df.transpose()
+
+
+    varStatePairs: List[List[Tuple[Variable, State]]] = [list(itertools.product(*([ev.var], ev.states))) for ev in evidence]
+
+    # Step 2: combine each pairs with the other
+    observedTuples: List[Tuple[Variable, State]] = list(itertools.product(*varStatePairs))
+    observed: List[Dict[Variable, State]] = list(map(lambda triple: dict(triple), observedTuples))
+
+
+    dists: List[DiscreteFactor] = [elim.query(variables = [query.var], evidence = evPair) for evPair in observed]
+
+    # Step 3: Create the data frame
+    evStates: List[State] = list(map(lambda evVar: evVar.states, evidence))
+    evStateCombos = list(itertools.product(*evStates))
+    # The variable names of the given random variables
+    evidence: List[Variable] = list(map(lambda evVar: evVar.var, evidence))
+
+    queryProbs: List[List[Probability]] = np.asarray([dist.values for dist in dists]).T
+
+    #topColNames = [''] if evidence == None else pd.MultiIndex.from_tuples(evStateCombos, names=evidence)
+    topColNames = pd.MultiIndex.from_tuples(evStateCombos, names=evidence)
+
+    # Use the "ordered" state names instead of queryVar.states so that we get the actual order of the states as used in the Discrete Factor object
+    ordStateNames = list(dists[0].state_names.values() )[0]
+    df: DataFrame = DataFrame(data = queryProbs, index = ordStateNames, columns = topColNames)
+    df.index.name = query.var
+
+    return df.transpose()
