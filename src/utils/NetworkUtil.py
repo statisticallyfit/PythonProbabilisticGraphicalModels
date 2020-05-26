@@ -2,11 +2,13 @@ import daft
 from typing import *
 
 
-from pgmpy.models.BayesianModel import BayesianModel
-from pgmpy.independencies.Independencies import Independencies
+from pgmpy.models import BayesianModel
+from pgmpy.inference import VariableElimination
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.factors.discrete import JointProbabilityDistribution
 from pgmpy.factors.discrete.DiscreteFactor import DiscreteFactor
+from pgmpy.independencies import Independencies
+from pgmpy.independencies.Independencies import IndependenceAssertion
 from pgmpy.inference.CausalInference import CausalInference
 
 from operator import mul
@@ -14,14 +16,20 @@ from functools import reduce
 
 import itertools
 
+import numpy as np
+
 import collections
 
+
+import pandas as pd
+from pandas.core.frame import DataFrame
 
 # Type alias for clarity
 
 Variable = str
 Probability = float
 Trail = str
+State = str
 
 # ----------------------------------------------------
 
@@ -278,19 +286,27 @@ def probChainRule(condAcc: List[Variable], acc: Variable = '') -> str:
 
 def activeTrails(model: BayesianModel,
                  variables: List[Variable],
-                 observed: List[Variable] = None) -> List[Trail]:
+                 observed: List[Variable] = None,
+                 skipSelfTrail: bool = True) -> List[Trail]:
+
     '''Creates trails by threading the way through the dictionary returned by the pgmpy function `active_trail_nodes`'''
 
     trails: Dict[Variable, Set[Variable]] = model.active_trail_nodes(variables = variables, observed = observed)
 
-    trailTupleList: List[List[Tuple[Variable]]] = [[(startVar, endVar) for endVar in endVarList]
-                                                   for (startVar, endVarList) in trails.items()]
+    trailTupleList: List[List[Tuple[Variable, Variable]]] = [[(startVar, endVar) for endVar in endVarList]
+                                                             for (startVar, endVarList) in trails.items()]
 
-    trailTuples: List[Tuple[Variable]] = list(itertools.chain(*trailTupleList))
+
+    trailTuples: List[Tuple[Variable, Variable]] = list(itertools.chain(*trailTupleList))
+
+    if skipSelfTrail: # then remove the ones with same start and end
+        trailTuples = list(filter(lambda tup : tup[0] != tup[1], trailTuples))
 
     explicitTrails: List[Trail] = list(map(lambda tup : f"{tup[0]} --> {tup[1]}", trailTuples))
 
     return explicitTrails
+
+
 
 
 
@@ -487,6 +503,12 @@ assert mergeSubsets(vals) == [{'D', 'E', 'F'}, {'C', 'D', 'F'}, {'A', 'D', 'F'},
 
 # Function that calculate the distributins based on variables given to pass as observed; we calculate the variable elimination based on all possible combos of the given variable states
 
+
+
+# Create named tuple class with names "Names" and "Objects"
+RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
+
+
 def eliminate(model: BayesianModel,
               query: RandomVariable,
               evidence: List[RandomVariable] = None) -> DataFrame:
@@ -494,6 +516,7 @@ def eliminate(model: BayesianModel,
     elim = VariableElimination(model)
 
     if evidence is None:
+        marginalDist: DiscreteFactor = elim.query(variables = [query.var], evidence = None)
         queryProbs: List[Probability] = marginalDist.values
         topColNames = ['']
         ordStateNames: List[State] = list(marginalDist.state_names.values())[0]
@@ -515,12 +538,12 @@ def eliminate(model: BayesianModel,
     evStates: List[State] = list(map(lambda evVar: evVar.states, evidence))
     evStateCombos = list(itertools.product(*evStates))
     # The variable names of the given random variables
-    evidence: List[Variable] = list(map(lambda evVar: evVar.var, evidence))
+    evNames: List[Variable] = list(map(lambda evVar: evVar.var, evidence))
 
     queryProbs: List[List[Probability]] = np.asarray([dist.values for dist in dists]).T
 
     #topColNames = [''] if evidence == None else pd.MultiIndex.from_tuples(evStateCombos, names=evidence)
-    topColNames = pd.MultiIndex.from_tuples(evStateCombos, names=evidence)
+    topColNames = pd.MultiIndex.from_tuples(evStateCombos, names=evNames)
 
     # Use the "ordered" state names instead of queryVar.states so that we get the actual order of the states as used in the Discrete Factor object
     ordStateNames = list(dists[0].state_names.values() )[0]

@@ -6,7 +6,7 @@ import numpy as np
 
 
 Variable = str
-
+State = str
 
 
 
@@ -55,8 +55,9 @@ def tupleDoubleConcat(doubleTuple: Tuple[Tuple[Variable, Set[Variable]], Tuple[V
         return [(keyB, setB), (keyA, setA)]
 
 
-
+'''
 # TODO fix the fact that the longer list is ignored in the ZIP operation!!!
+
 # Simple addition (concat) of dicts, assuming no keys are the same
 def addDicts(d1: Dict[Variable, Set[Variable]],
              d2: Dict[Variable, Set[Variable]]) -> Dict[Variable, Set[Variable]]:
@@ -69,7 +70,14 @@ def addDicts(d1: Dict[Variable, Set[Variable]],
     listOfTupleList = map(lambda aTupBTup : tupleDoubleConcat(aTupBTup), zip(xsSorted.items(), ysSorted.items()))
 
     return dict(itertools.chain(*listOfTupleList)) # using `chain` to flatten the list of lists
+'''
 
+
+# Adds two dicts, assuming no keys are the same (so no var names are the same
+# Used for quickly concatenating the backdoor states dict to the extra testing dict (like backdoor states of work
+#  capacity and time dict added to the training level dict in the Car demo, for part 4/ intercausaul reasoning)
+def addEvidence(d1: Dict[Variable, State], d2: Dict[Variable, State]):
+    return dict(list(d1.items()) + list(d2.items()))
 
 
 # TODO multiway dict add, must fix the tuple concat function -- how?

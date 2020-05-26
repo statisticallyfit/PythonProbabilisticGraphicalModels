@@ -94,7 +94,7 @@ AbsenteeismLevel = RandomVariable(var = "AbsenteeismLevel", states =  ['Low', 'M
 
 
 # Make 30 days to represent 1 month
-Time = RandomVariable(var = "Time", states = list(map(lambda day : str(day), range(1, 31))))
+Time = RandomVariable(var = "Time", states = list(range(1, 31))) # list(map(lambda day : str(day), range(1, 31))))
 
 #TrainingLevel = RandomVariable(var = "TrainingLevel", states = ['Training-00',
 #                                                                'Training-01',
@@ -255,13 +255,16 @@ showActiveTrails(carModel, variables = [ExperienceLevel.var, AbsenteeismLevel.va
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-EWA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var :OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME})
+backdoorStates: Dict[Variable, State] = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME}
 
-EWA_1: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var: OBS_STATE_TIME, ExperienceLevel.var : 'High'})
 
-EWA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME, ExperienceLevel.var : 'Medium'})
+EWA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = backdoorStates)
 
-EWA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME, ExperienceLevel.var : 'Low'})
+EWA_1: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'High'}))
+
+EWA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Medium'}))
+
+EWA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
 
 print(EWA)
 # %% markdown [markdown]
@@ -332,19 +335,21 @@ showActiveTrails(carModel, variables = [ExperienceLevel.var, AbsenteeismLevel.va
 # **Testing Conditional Independence:** Using Probabilities
 
 # %% codecell
-OBS_STATE_WORKCAPACITY: State = 'Low'
+#OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-EA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {Time.var : OBS_STATE_TIME})
+backdoorStates: Dict[Variable, State] = {Time.var : OBS_STATE_TIME}
+
+EA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = backdoorStates)
 print(EA)
 # %% codecell
-EA_1: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'High', Time.var: OBS_STATE_TIME})
+EA_1: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'High'}))
 print(EA_1)
 # %% codecell
-EA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Medium', Time.var : OBS_STATE_TIME})
+EA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Medium'}))
 print(EA_2)
 # %% codecell
-EA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Low', Time.var : OBS_STATE_TIME})
+EA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
 print(EA_3)
 # %% markdown [markdown]
 #
@@ -399,10 +404,13 @@ LATE: int = 30
 
 TimeSmall = RandomVariable(var = "Time", states = [EARLY, ONE_THIRD, TWO_THIRD, LATE])
 
+backdoorStates: Dict[Variable, State] = {Time.var : EARLY}
+
+
 # For early time, studying effects of varying experience level on absenteeism
-EA_early_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Low', Time.var : EARLY})
-EA_early_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Medium', Time.var : EARLY})
-EA_early_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'High', Time.var : EARLY})
+EA_early_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
+EA_early_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Medium'}))
+EA_early_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'High'}))
 # %% codecell
 print(EA_early_1)
 # %% codecell
@@ -411,10 +419,12 @@ print(EA_early_2)
 print(EA_early_3)
 
 # %% codecell
+backdoorStates: Dict[Variable, State] = {Time.var : ONE_THIRD}
+
 # For first-third time, studying effects of varying experience level on absenteeism
-EA_onethird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Low', Time.var : ONE_THIRD})
-EA_onethird_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Medium', Time.var : ONE_THIRD})
-EA_onethird_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'High', Time.var : ONE_THIRD})
+EA_onethird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
+EA_onethird_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Medium'}))
+EA_onethird_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'High'}))
 # %% codecell
 print(EA_onethird_1)
 # %% codecell
@@ -423,10 +433,12 @@ print(EA_onethird_2)
 print(EA_onethird_3)
 
 # %% codecell
+backdoorStates: Dict[Variable, State] = {Time.var : TWO_THIRD}
+
 # For two-third time, studying effects of varying experience level on absenteeism
-EA_twothird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Low', Time.var : TWO_THIRD})
-EA_twothird_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Medium', Time.var : TWO_THIRD})
-EA_twothird_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'High', Time.var : TWO_THIRD})
+EA_twothird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
+EA_twothird_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Medium'}))
+EA_twothird_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'High'}))
 # %% codecell
 print(EA_twothird_1)
 # %% codecell
@@ -435,10 +447,12 @@ print(EA_twothird_2) # higher probability of absentee = High when Experience = M
 print(EA_twothird_3)
 
 # %% codecell
+backdoorStates: Dict[Variable, State] = {Time.var : LATE}
+
 # For late time, studying effects of varying experience level on absenteeism
-EA_late_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Low', Time.var : LATE})
-EA_late_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Medium', Time.var : LATE})
-EA_late_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'High', Time.var : LATE})
+EA_late_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
+EA_late_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Medium'}))
+EA_late_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'High'}))
 # %% codecell
 print(EA_late_1)
 # %% codecell
@@ -448,150 +462,31 @@ print(EA_late_2) # higher probability of absentee = High when Experience = Mediu
 print(EA_late_3)
 
 
-
-
-
-
-
-
 # %% markdown
-# ### Causal Reasoning: Exertion - Absenteeism Effect
+# Summarizing disparate printing efforts above:
+# %% markdown
+# ### Causal Reasoning: Experience - Absenteeism
 # %% codecell
-
-# For early time, studying effects of varying experience level on absenteeism
-XA_early_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'Low', Time.var : EARLY})
-XA_early_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'Medium', Time.var : EARLY})
-XA_early_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'High', Time.var : EARLY})
+experDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence= [ExperienceLevel, TimeSmall])
+experDf
+# %% markdown
+# ### Causal Reasoning: Exertion - Absenteeism
 # %% codecell
-# TODO Low Exertion for Early Time gives High Absenteeism (?????)  Not correct
-print(XA_early_1)
-# %% codecell
-print(XA_early_2)
-# %% codecell
-print(XA_early_3)
-
-# %% codecell
-# For first-third time, studying effects of varying experience level on absenteeism
-XA_onethird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'Low', Time.var : ONE_THIRD})
-XA_onethird_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'Medium', Time.var : ONE_THIRD})
-XA_onethird_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'High', Time.var : ONE_THIRD})
-# %% codecell
-print(XA_onethird_1)
-# %% codecell
-print(XA_onethird_2)
-# %% codecell
-print(XA_onethird_3)
-
-# %% codecell
-# For two-third time, studying effects of varying experience level on absenteeism
-XA_twothird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'Low', Time.var : TWO_THIRD})
-XA_twothird_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'Medium', Time.var : TWO_THIRD})
-XA_twothird_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'High', Time.var : TWO_THIRD})
-# %% codecell
-print(XA_twothird_1)
-# %% codecell
-print(XA_twothird_2) # higher probability of absentee = High when Exertion = Medium for Time nearly to the end
-# %% codecell
-print(XA_twothird_3)
-
-# %% codecell
-# For late time, studying effects of varying experience level on absenteeism
-XA_late_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'Low', Time.var : LATE})
-XA_late_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'Medium', Time.var : LATE})
-XA_late_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExertionLevel.var : 'High', Time.var : LATE})
-# %% codecell
-print(XA_late_1)
-# %% codecell
-print(XA_late_2) # higher probability of absentee = High when Experience = Medium for Time nearly to the end
-# %% codecell
-# HIgher probability of absenteeism = High when Exertion = High, for Time = Late (so there is an overriding factor other than Exertion that influences Absenteeism), because I made High Exertion yield High Absenteeism.
-print(XA_late_3)
-
-
-
-
-
-
-
+exertDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence= [ExertionLevel, TimeSmall])
+exertDf
 # %% markdown
 # ### Causal Reasoning: Training - Absenteeism
 # %% codecell
-
-# For early time, studying effects of varying experience level on absenteeism
-TA_early_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'Low', Time.var : EARLY})
-TA_early_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'Medium', Time.var : EARLY})
-TA_early_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'High', Time.var : EARLY})
-# %% codecell
-# NOTE: at the beginning, Training and Absenteeism are oppositely correlated!
-# Low training for Early time gives High Absenteeism
-print(TA_early_1)
-# %% codecell
-print(TA_early_2)
-# %% codecell
-print(TA_early_3)
-
-# %% codecell
-# For first-third time, studying effects of varying experience level on absenteeism
-TA_onethird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'Low', Time.var : ONE_THIRD})
-TA_onethird_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'Medium', Time.var : ONE_THIRD})
-TA_onethird_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'High', Time.var : ONE_THIRD})
-# %% codecell
-# High Absentee results when Training is Low for Earlyish Time
-print(TA_onethird_1)
-# %% codecell
-print(TA_onethird_2)
-# %% codecell
-print(TA_onethird_3)
-
-# %% codecell
-# For two-third time, studying effects of varying experience level on absenteeism
-TA_twothird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'Low', Time.var : TWO_THIRD})
-TA_twothird_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'Medium', Time.var : TWO_THIRD})
-TA_twothird_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'High', Time.var : TWO_THIRD})
-# %% codecell
-print(TA_twothird_1)
-# %% codecell
-print(TA_twothird_2) # higher probability of absentee = High when Training = Medium for Time nearly to the end, probably because workers are tired?
-# %% codecell
-print(TA_twothird_3)
-
-# %% codecell
-# For late time, studying effects of varying experience level on absenteeism
-TA_late_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'Low', Time.var : LATE})
-TA_late_2 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'Medium', Time.var : LATE})
-TA_late_3 = elim.query(variables = [AbsenteeismLevel.var], evidence = {TrainingLevel.var : 'High', Time.var : LATE})
-# %% codecell
-print(TA_late_1)
-# %% codecell
-print(TA_late_2) # higher probability of absentee = High when Experience = Medium for Time nearly to the end
-# %% codecell
-# HIgher probability of absenteeism = High when Training = High, for Time = Late (so there is an overriding factor other than Experience that influences Absenteeism), because I made High Experience yield Low Absenteeism.
-# THUS: # NOTE: at the end of time, Training and Absenteeism are positively correlated! (while at the beginning they were negatively correlated)
-print(TA_late_3)
-
-
-
-# %% markdown
-# Summarizing disparate printing efforts above:
-# %% codecell
-experDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence = [ExperienceLevel, TimeSmall])
-experDf
-# %% codecell
-exertDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence = [ExertionLevel, TimeSmall])
-exertDf
-# %% codecell
-trainDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence = [TrainingLevel, TimeSmall])
+trainDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence= [TrainingLevel, TimeSmall])
 trainDf
-
-
 
 # %% markdown
 # ### Causal Reasoning: Experience / Exertion / Training - Absenteeism
 # %% codecell
-TimeSmall = RandomVariable(var = "Time", states = [EARLY, LATE]) # redefining to have just early and late states (fewer)
 
-absentDf: DataFrame = eliminateGivenEvidence(carModel, query= AbsenteeismLevel,
-                       evidence = [ExertionLevel, TrainingLevel, ExperienceLevel, TimeSmall])
+absentDf: DataFrame = eliminate(carModel,
+                                query= AbsenteeismLevel,
+                                evidence = [ExertionLevel, TrainingLevel, ExperienceLevel, TimeSmall])
 absentDf
 
 
@@ -641,160 +536,238 @@ pgmpyToGraph(carModel)
 # * the probability of **ExertionLevel** won't influence probability of **TrainingLevel** (and vice versa).
 #
 
+
+# %% markdown [markdown]
+# **Testing Marginal Independence:** Using Active Trails Methods
 # %% codecell
-elim: VariableElimination = VariableElimination(model = carModel)
+# When NOT observing the state of the middle node, there is NO active trail (but need to bserve the Time var state because this is a backdoor)
+assert not carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [Time.var])
+
+# When observing the state, there is IS an active trail (also must always account for the backdoor, Time)
+assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [WorkCapacity.var, Time.var])
+
+assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
+
+# Finding out which extra variable to condition on: this is the backdoor
+assert observedVars(carModel, startVar = ExertionLevel.var, endVar = TrainingLevel.var) == [{'Time'}], "Check: all list of extra variables (backdoors) to condition on to ACTIVATE active trail between Exertion and Training"
+
+
+
+# See, there is no active trail from Exertion to Training when not observing WorkCapacity.
+showActiveTrails(carModel, variables = [ExertionLevel.var, TrainingLevel.var], observed = [Time.var])
+# %% codecell
+
+# See, there IS active trail from Exertion to Training when observing WorkCapacity.
+showActiveTrails(carModel, variables = [ExertionLevel.var, TrainingLevel.var], observed = [WorkCapacity.var, Time.var])
+
+# %% markdown [markdown]
+# **Testing Marginal Independence:** Using Probabilities
+# %% codecell
+# OBS_STATE_WORKCAPACITY: State = 'Low' # remember, not observing the state of the middle node.
+OBS_STATE_TIME: int = 23
+
+backdoorStates: Dict[Variable, State] = {Time.var : OBS_STATE_TIME}
+
+TE: DiscreteFactor = elim.query(variables = [ExertionLevel.var], evidence = backdoorStates)
+
+TE_1: DiscreteFactor = elim.query(variables = [ExertionLevel.var], evidence = addEvidence(backdoorStates, {TrainingLevel.var : 'High'}))
+
+TE_2: DiscreteFactor = elim.query(variables = [ExertionLevel.var], evidence = addEvidence(backdoorStates, {TrainingLevel.var : 'Medium'}))
+
+TE_3: DiscreteFactor = elim.query(variables = [ExertionLevel.var], evidence = addEvidence(backdoorStates, {TrainingLevel.var : 'Low'}))
+print(TE)
+
+# %% markdown [markdown]
+#
+# The probabilities above are stated formulaically as follows:
+# $$
+# \begin{array}{ll}
+# P(\text{ExertionLevel} = \text{High} \; | \; \Big\{ \text{Time} = 23  \Big\}) \\
+# = P(\text{ExertionLevel} = \text{High} \; | \; \Big\{ \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Low})  \\
+# = P(\text{ExertionLevel} = \text{High} \; | \; \Big\{ \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Medium}) \\
+# = P(\text{ExertionLevel} = \text{High} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{High}) \\
+# = 0.9927
+# \end{array}
+# $$
+# $$
+# \begin{array}{ll}
+# P(\text{ExertionLevel} = \text{Low} \; | \; \Big\{ \text{Time} = 23 \Big\}) \\
+# = P(\text{ExertionLevel} = \text{Low} \; | \; \Big\{ \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Low})  \\
+# = P(\text{ExertionLevel} = \text{Low} \; | \; \Big\{ \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Medium}) \\
+# = P(\text{ExertionLevel} = \text{Low} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{High}) \\
+# = 0.0037
+# \end{array}
+# $$
+# $$
+# \begin{array}{ll}
+# P(\text{ExertionLevel} = \text{Medium} \; | \; \Big\{ \text{Time} = 23 \Big\}) \\
+# = P(\text{ExertionLevel} = \text{Medium} \; | \; \Big\{ \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Low})  \\
+# = P(\text{ExertionLevel} = \text{Medium} \; | \; \Big\{ \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Medium}) \\
+# = P(\text{ExertionLevel} = \text{Medium} \; | \; \Big\{ \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{High}) \\
+# = 0.0037
+# \end{array}
+# $$
+#
+# Since all the above stated probabilities are equal for each state of `ExertionLevel` = `Low`, `Medium`, `High`, we can assert that the random variables `TrainingLevel` and `ExertionLevel` are independent of each other, when NOT observing `WorkCapacity` state (but also observing the state of `Time` to adjust for backdoors). Arbitrarily choosing the `backdoorStates` = `{Time = 23}`, we can write:
+# $$
+# P(\text{ExertionLevel} \; | \; \{\texttt{backdoorStates} \}) = P(\text{ExertionLevel} \; | \; \{ \texttt{backdoorStates} \} \; \cap \; \text{TrainingLevel})
+# $$
+#
+# %% codecell
+assert allEqual(TE.values, TE_1.values, TE_2.values, TE_3.values), "Check: the random variables Exertion and Training are independent, when intermediary node WorkCapacity is NOT observed (while accounting for backdoors)"
+
+
+
+
+
+
+# %% markdown [markdown]
+# #### Testing conditional dependence:
+# $$
+# \color{Chartreuse}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{ExertionLevel} \longrightarrow \text{WorkCapacity} \longrightarrow \text{TrainingLevel}}
+# $$
+# $$
+# \color{LimeGreen}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{ExertionLevel} \longrightarrow \text{WorkCapacity} \longrightarrow \text{TrainingLevel}}
+# $$
+# $$
+# \color{Green}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{ExertionLevel} \longrightarrow \text{WorkCapacity} \longrightarrow \text{TrainingLevel}}
+# $$
+# Given that **WorkCapacity**'s state is observed, we can make the following equivalent statements:
+# * there IS active trail between **ExertionLevel** and **TrainingLevel**.
+# * **ExertionLevel** and **TrainingLevel** are dependent.
+# * the probability of **ExertionLevel** influences probability of **TrainingLevel** (and vice versa).
+#
+
 
 # %% markdown [markdown]
 # **Testing Conditional Dependence:** Using Active Trails Methods
 # %% codecell
-assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = None)
-
-assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
-
-# Finding out which extra variable to condition on:
-observedVars(carModel, startVar = ExertionLevel.var, endVar = TrainingLevel.var) == [{'Time'}], "Check: all list of extra variables to condition on to ACTIVATE active trail between Exertion and Training"
-
-# Check trail is activated (before in other 3 models we had to nullify it not activate it)
-carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [WorkCapacity.var] + [Time.var]), "Check: active trail between Exertion and Training is activated with the extra variable NOT observed"
-
-# See, there is no active trail from ExperienceLevel to AbsenteeismLevel when observing WorkCapacity and time.
-showActiveTrails(carModel, variables = [ExertionLevel.var, TrainingLevel.var], observed = [Time.var])
-
-# %% markdown [markdown]
-# **Testing Conditional Independence:** Using Probabilities
-# %% codecell
-OBS_STATE_WORKCAPACITY: State = 'Low'
-OBS_STATE_TIME: int = 23
-
-EWA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var :OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME})
-
-EWA_1: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var: OBS_STATE_TIME, ExperienceLevel.var : 'High'})
-
-EWA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME, ExperienceLevel.var : 'Medium'})
-
-EWA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME, ExperienceLevel.var : 'Low'})
-
-print(EWA)
-# %% markdown [markdown]
-#
-# The probabilities above are stated formulaically as follows:
-#
-# $$
-# \begin{array}{ll}
-# P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{  \text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23  \Big\}) \\
-# = P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low})  \\
-# = P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) \\
-# = P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) \\
-# = 0.4989
-# \end{array}
-# $$
-# $$
-# \begin{array}{ll}
-# P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
-# = P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low})  \\
-# = P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) \\
-# = P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) \\
-# = 0.3994
-# \end{array}
-# $$
-# $$
-# \begin{array}{ll}
-# P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) \\
-# = P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low})  \\
-# = P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) \\
-# = P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) \\
-# = 0.1017
-# \end{array}
-# $$
-#
-# Since all the above stated probabilities are equal for each state of `AbsenteeismLevel` = `Low`, `Medium`, `High`, we can assert that the random variables `ExperienceLevel` and `AbsenteeismLevel` are independent of each other, when observing `WorkCapacity` state (and also observing the state of `Time` to adjust for backdoors). Arbitrarily choosing the states `backdoorStates` = `{WorkCapacity = Low, Time = 23}`, we can write:
-# $$
-# P(\text{AbsenteeismLevel} \; | \; \{\texttt{backdoorStates} \}) = P(\text{AbsenteeismLevel} \; | \; \{ \texttt{backdoorStates} \} \; \cap \; \text{ExperienceLevel})
-# $$
-# %% codecell
-assert allEqual(EWA.values, EWA_1.values, EWA_2.values, EWA_3.values), "Check: the random variables Experience and Absenteeism are independent, when intermediary node WorkCapacity is observed (while accounting for backdoors)"
-
-
-
-
-
-
-# %% markdown [markdown]
-# #### Testing marginal dependence:
-# $$
-# \color{Green}{\text{WorkCapacity (unobserved)}: \;\;\;\;\;\;\;  \text{ExperienceLevel} \longrightarrow \text{WorkCapacity} \longrightarrow \text{AbsenteeismLevel}}
-# $$
-# Given that **WorkCapacity**'s state is unobserved, we can make the following equivalent statements:
-# * there IS active trail between **ExperienceLevel** and **AbsenteeismLevel**.
-# * **ExperienceLevel** and **AbsenteeismLevel** are dependent.
-# * the probability of **ExperienceLevel** influences probability of **AbsenteeismLevel** (and vice versa).
-#
-
-
-# %% markdown [markdown]
-# **Testing Conditional Independence:** Using Active Trails Methods
-# %% codecell
-assert carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = None)
+assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [WorkCapacity.var, Time.var])
 
 # See, there is active trail from ExperienceLevel to AbsenteeismLevel when not observing WorkCapacity variable
-showActiveTrails(carModel, variables = [ExperienceLevel.var, AbsenteeismLevel.var], observed = None)
+showActiveTrails(carModel, variables = [ExertionLevel.var, TrainingLevel.var], observed = [WorkCapacity.var, Time.var])
 
 # %% markdown [markdown]
-# **Testing Conditional Independence:** Using Probabilities
+# **Testing Conditional Dependence:** Using Probabilities
 
 # %% codecell
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-EA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {Time.var : OBS_STATE_TIME})
-print(EA)
+backdoorStates: Dict[Variable, State] = {Time.var: OBS_STATE_TIME, WorkCapacity.var : OBS_STATE_WORKCAPACITY}
+
+TWE: DiscreteFactor = elim.query(variables = [ExertionLevel.var],
+                                 evidence = backdoorStates)
+print(TWE)
 # %% codecell
-EA_1: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'High', Time.var: OBS_STATE_TIME})
-print(EA_1)
+
+TWE_1: DiscreteFactor = elim.query(variables = [ExertionLevel.var],
+                                   evidence = addEvidence(backdoorStates, {TrainingLevel.var : 'High'}))
+print(TWE_1)
 # %% codecell
-EA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Medium', Time.var : OBS_STATE_TIME})
-print(EA_2)
+TWE_2: DiscreteFactor = elim.query(variables = [ExertionLevel.var],
+                                   evidence = addEvidence(backdoorStates, {TrainingLevel.var : 'Medium'}))
+print(TWE_2)
 # %% codecell
-EA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = {ExperienceLevel.var : 'Low', Time.var : OBS_STATE_TIME})
-print(EA_3)
+TWE_3: DiscreteFactor = elim.query(variables = [ExertionLevel.var],
+                                   evidence = addEvidence(backdoorStates, {TrainingLevel.var : 'Low'}))
+print(TWE_3)
 # %% markdown [markdown]
 #
-# The probabilities above are stated formulaically as follows:
 # $$
 # \begin{array}{ll}
-# P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{ \text{Time} = 23  \Big\}) = 0.4965 \\
-# \ne P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low}) = 0.3885  \\
-# \ne P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) = 0.3885 \\
-# \ne P(\text{AbsenteeismLevel} = \text{High} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) = 0.4973
+# P(\text{ExertionLevel} = \text{High} \; | \; \Big\{  \text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23  \Big\}) = 0.9975 \\
+# \ne P(\text{ExertionLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Low})  = 0.9927 \\
+# \ne P(\text{ExertionLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Medium}) = 0.9927 \\
+# \ne P(\text{ExertionLevel} = \text{High} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{High})  = 0.9975
 # \end{array}
 # $$
 # $$
 # \begin{array}{ll}
-# P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{ \text{Time} = 23  \Big\}) = 0.4965 \\
-# \ne P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low}) = 0.3553 \\
-# \ne P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) = 0.3553 \\
-# \ne P(\text{AbsenteeismLevel} = \text{Low} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) = 0.3987
+# P(\text{ExertionLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) = 0.0012 \\
+# \ne P(\text{ExertionLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Low})  = 0.0037 \\
+# \ne P(\text{ExertionLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Medium}) = 0.0037 \\
+# \ne P(\text{ExertionLevel} = \text{Low} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{High}) = 0.0012
 # \end{array}
 # $$
 # $$
 # \begin{array}{ll}
-# P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{ \text{Time} = 23  \Big\}) = 0.4965 \\
-# \ne P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Low}) = 0.2561 \\
-# \ne P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{Medium}) = 0.2561 \\
-# \ne P(\text{AbsenteeismLevel} = \text{Medium} \; | \; \Big\{\text{Time} = 23 \Big\} \; \cap \; \text{ExperienceLevel} = \text{High}) = 0.1040
+# P(\text{ExertionLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\}) = 0.0012 \\
+# \ne P(\text{ExertionLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Low}) = 0.0037 \\
+# \ne P(\text{ExertionLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{Medium}) = 0.0037 \\
+# \ne P(\text{ExertionLevel} = \text{Medium} \; | \; \Big\{\text{WorkCapacity} = \text{Low} \; \cap \; \text{Time} = 23 \Big\} \; \cap \; \text{TrainingLevel} = \text{High}) = 0.0012
 # \end{array}
 # $$
 #
-# Since not all the above stated probabilities are equal for each state of `AbsenteeismLevel` = `Low`, `Medium`, `High`, we can assert that the random variables `ExperienceLevel` and `AbsenteeismLevel` are dependent of each other, when not observing `WorkCapacity` state (while  observing the state of `Time` to adjust for backdoors). Arbitrarily choosing the state `backdoorStates` = `{Time = 23}`, we can write:
+# Since not all the above stated probabilities are equal for each state of `ExertionLevel` = `Low`, `Medium`, `High`, we can assert that the random variables `TrainingLevel` and `ExertionLevel` are dependent, when observing `WorkCapacity` state (and also observing the state of `Time` to adjust for backdoors). Arbitrarily choosing the states `backdoorStates` = `{WorkCapacity = Low, Time = 23}`, we can write:
 # $$
-# P(\text{AbsenteeismLevel} \; | \; \{\texttt{backdoorStates} \}) \ne P(\text{AbsenteeismLevel} \; | \; \{ \texttt{backdoorStates} \} \; \cap \; \text{ExperienceLevel})
+# P(\text{ExertionLevel} \; | \; \{\texttt{backdoorStates} \}) \ne P(\text{ExertionLevel} \; | \; \{ \texttt{backdoorStates} \} \; \cap \; \text{TrainingLevel})
 # $$
 # %% codecell
 
-assert not allEqual(EA.values, EA_1.values, EA_2.values, EA_3.values), "Check: the random variables Experience and Absenteeism are dependent, when intermediary node WorkCapacity is NOT observed (while accounting for backdoors)"
-
+assert not allEqual(TWE.values, TWE_1.values, TWE_2.values, TWE_3.values), "Check: the random variables Exertion and Training are dependent, when intermediary node WorkCapacity is observed (while accounting for backdoors)"
 
 
 
 # %% markdown
-# ### Causal Reasoning: Experience - Absenteeism Effect
+# ### Common Effect Reasoning: Exertion --> WorkCapacity <-- Training
+# %% codecell
+TimeSmall = RandomVariable(var = "Time", states = [2, 30])
+# 1
+# backdoor state here
+observedVars(carModel, startVar = ExertionLevel.var, endVar = ExperienceLevel.var)
+# %% codecell
+assert carModel.is_active_trail(start = ExertionLevel.var, end = ExperienceLevel.var, observed = [Time.var, WorkCapacity.var]), "Check: that observing the backdoor state and middle node state CREATES an active trail between Exertion and Experience (common effect model)"
+# %% markdown
+# Observations:
+#
+# * When `WorkCapacity = Low` and `ExperienceLevel = High` and `Time = EARLY` then the query variable `ExertionLevel = High` with probability 0.9926. Intuitively: most likely for worker to be exerted early on in the month, even when experience is high and also when work capacity is low.
+# * When `WorkCapacity = Low` and `ExperienceLevel = High` and `Time = LATE` then the query variable `ExertionLevel = High` with probability 0.9926. Intuitively: worker highly probable to be highly exerted when he has lots of experience, has low work capacity and time is late in the month.
+# * ...
+# %% codecell
+# backdoor vars = workcapacity, Time
+df1 = eliminate(carModel, query = ExertionLevel, evidence = [WorkCapacity, TimeSmall, ExperienceLevel])
+df1
+# %% codecell
+# 2
+observedVars(carModel, startVar = ExertionLevel.var, endVar = TrainingLevel.var)
+# %% codecell
+assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [Time.var, WorkCapacity.var]), "Check: that observing the backdoor state and middle node state CREATES an active trail between Exertion and TrainingLevel (common effect model)"
+# TODO observing none is also true but that cannot be true because there should be NO active trail when NOT observing the middle node WorkCpacity ???
+#carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = None)
+# %% codecell
+df2 = eliminate(carModel, query = ExertionLevel, evidence = [WorkCapacity, TimeSmall, TrainingLevel])
+df2
+# %% codecell
+# 4
+# TODO left off here
+observedVars(carModel, startVar = WorkCapacity.var, endVar = Time.var)
+#backdoorAdjustSets(model = carModel, endVar = AbsenteeismLevel.var)
+#inf = CausalInference(carModel)
+#inf.get_all_backdoor_adjustment_sets(X = WorkCapacity.var, Y = Time.var)
+carModel.is_active_trail(start = WorkCapacity.var, end = Time.var, observed = [AbsenteeismLevel.var, WorkCapacity.var, Time.var])
+# %% codecell
+df1 = eliminate(carModel, query = WorkCapacity, evidence = [AbsenteeismLevel, ExperienceLevel, TimeSmall])
+df1
+# %% codecell
+# 5
+observedVars(carModel, startVar = Time.var, endVar = ExertionLevel.var)
+# %% codecell
+# 6
+observedVars(carModel, startVar = Time.var, endVar = ExperienceLevel.var)
+# %% codecell
+# 7
+observedVars(carModel, startVar = Time.var, endVar = TrainingLevel.var)
+# %% codecell
+# 9
+observedVars(carModel, startVar = ProcessType.var, endVar = InjuryType.var)
+# %% codecell
+# 10
+observedVars(carModel, startVar = ToolType.var, endVar = ProcessType.var)
+# %% codecell
+# 13
+observedVars(carModel, startVar = WorkCapacity.var, endVar = InjuryType.var)
+# %% codecell
+# 14
+observedVars(carModel, startVar = Time.var, endVar = ProcessType.var)
+# %% codecell
