@@ -90,7 +90,7 @@ fruitData
 # %% codecell
 fruitModel = BayesianModel([('fruit', 'tasty'), ('size', 'tasty')])
 
-pgmpyToGraph(fruitModel)
+drawGraph(fruitModel)
 
 
 # %% markdown [markdown]
@@ -206,7 +206,7 @@ for cpd in bayesCPDs:
 # %% markdown [markdown]
 # The `fruitModel` with estimated CPDs using `BayesianEstimator`:
 # %% codecell
-pgmpyToGraphCPD(fruitModel)
+drawGraphCPD(fruitModel)
 # %% markdown [markdown]
 # Another example using `fit()` with `BayesianEstimator`:
 # %% codecell
@@ -221,7 +221,7 @@ model.fit(data, estimator = BayesianEstimator, prior_type = 'BDeu') #leaving equ
 for cpd in model.get_cpds():
     print(cpd)
 # %% codecell
-pgmpyToGraphCPD(model)
+drawGraphCPD(model)
 
 # %% markdown [markdown]
 # ## Structure Learning
@@ -259,10 +259,10 @@ bic: BicScore = BicScore(data = data)
 
 # %% codecell
 commonEvidenceModel: BayesianModel = BayesianModel([('X', 'Z'), ('Y', 'Z')])
-pgmpyToGraph(commonEvidenceModel)
+drawGraph(commonEvidenceModel)
 # %% codecell
 commonCauseModel: BayesianModel = BayesianModel([('X', 'Z'), ('X', 'Y')])
-pgmpyToGraph(commonCauseModel)
+drawGraph(commonCauseModel)
 
 # %% codecell
 bdeu.score(commonEvidenceModel)
@@ -347,7 +347,7 @@ bestModel: DAG = es.estimate()
 bestModel.edges()
 # %% codecell
 # The best model (structurally estimated):
-pgmpyToGraph(bestModel, nodeColor = LIGHT_GREEN)
+drawGraph(bestModel, nodeColor = LIGHT_GREEN)
 
 # %% codecell
 # Computing scores for all structurally analyzed DAGS:
@@ -366,26 +366,26 @@ scoresAndDags: List[Tuple[float, DiGraph]] = list(reversed(es.all_scores()))
 LEN = len(scoresAndDags)
 
 # Second-highest scoring graph
-pgmpyToGraph(scoresAndDags[1][1])
+drawGraph(scoresAndDags[1][1])
 # %% codecell
 # Third-highest scoring graph
-pgmpyToGraph(scoresAndDags[2][1])
+drawGraph(scoresAndDags[2][1])
 # %% codecell
 # Fourth-highest scoring graph
-pgmpyToGraph(scoresAndDags[3][1])
+drawGraph(scoresAndDags[3][1])
 # %% codecell
 # Fifth-highest scoring graph
-pgmpyToGraph(scoresAndDags[4][1])
+drawGraph(scoresAndDags[4][1])
 # %% codecell
 # Sixth-highest scoring graph
-pgmpyToGraph(scoresAndDags[5][1])
+drawGraph(scoresAndDags[5][1])
 
 # %% codecell
 # Worst graph:
-pgmpyToGraph(scoresAndDags[LEN-1][1])
+drawGraph(scoresAndDags[LEN - 1][1])
 # %% codecell
 # Second-worst graph:
-pgmpyToGraph(scoresAndDags[LEN-2][1])
+drawGraph(scoresAndDags[LEN - 2][1])
 
 # %% markdown [markdown]
 # **Example 2:** Fruit data
@@ -417,7 +417,7 @@ bestModel = hc.estimate()
 # %% codecell
 bestModel.edges()
 # %% codecell
-pgmpyToGraph(bestModel)
+drawGraph(bestModel)
 
 # %% markdown [markdown]
 # The search correctly identifies that $B$ and $C$ do not influence $H$ directly, only through $A$ and of course that $D$, $E$, $F$ are independent.
@@ -496,7 +496,7 @@ print("Undirected edges: ", skel.edges())
 separatingSets
 # %% codecell
 # Remember this draws the graph as directed, but in fact the edges are undirected.
-pgmpyToGraph(skel)
+drawGraph(skel)
 
 # %% codecell
 from networkx.classes.digraph import DiGraph
@@ -505,14 +505,14 @@ pdag: DiGraph = est.skeleton_to_pdag(skel = skel, separating_sets = separatingSe
 
 print("PDAG edges: ", pdag.edges())
 # %% codecell
-pgmpyToGraph(pdag) # This is a directed graph (but how to show only partially?)
+drawGraph(pdag) # This is a directed graph (but how to show only partially?)
 
 # %% codecell
 model: DAG = est.pdag_to_dag(pdag = pdag)
 print("DAG edges: ", model.edges())
 
 
-pgmpyToGraph(model)
+drawGraph(model)
 
 
 # %% markdown [markdown]
@@ -526,7 +526,7 @@ assert estModel.edges() == model.edges(), "Check: both methods of getting the es
 
 estModel.edges()
 # %% codecell
-pgmpyToGraph(estModel)
+drawGraph(estModel)
 
 # %% markdown [markdown]
 # The `estimate_from_independencies()` method can be used to create a `BayesianModel` from a provided *set of independencies*.
@@ -544,7 +544,7 @@ indModel = ConstraintBasedEstimator.estimate_from_independencies(nodes = "ABCD",
 indModel.edges()
 
 # %% codecell
-pgmpyToGraph(indModel)
+drawGraph(indModel)
 
 
 
@@ -583,7 +583,7 @@ skeleton: UndirectedGraph = mmhc.mmpc()
 
 print("part 1) skeleton: ", skeleton.edges())
 # Remember this is supposed to be UNIDRECTED graph so ignore the directions
-pgmpyToGraph(skeleton)
+drawGraph(skeleton)
 
 # %% markdown [markdown]
 # * **NOTE:** Showing the meaning of `to_directed()` method in the next code (used to create the hybrid model)
@@ -594,7 +594,7 @@ print("Skeleton (undirected) edges: ", list(iter(skeleton.edges())) ) #== [('A',
 print("Skeleton (directed) edges: ", list(iter(skeleton.to_directed().edges())) ) #== [('A', 'H'), ('D', 'E'), ('E', 'D'), ('E', 'F'), ('F', 'E'), ('G', 'H'), ('H', 'A'), ('H', 'G')]
 
 # %% codecell
-pgmpyToGraph(skeleton.to_directed())
+drawGraph(skeleton.to_directed())
 
 # %% markdown [markdown]
 # **Part 2:** Orienting Edges using Score-Based Optimization
@@ -611,7 +611,7 @@ modelHybrid: DAG = hc.estimate(tabu_length = 10,
 
 print("Part 2) Model: ", modelHybrid.edges())
 
-pgmpyToGraph(modelHybrid)
+drawGraph(modelHybrid)
 
 # %% markdown [markdown]
 # `MmhcEstimator.estimate()` combines both these steps and directly estimates a `BayesianModel`.
@@ -622,4 +622,4 @@ modelMMHC: DAG = mmhc.estimate(scoring_method = BDeuScore(data), tabu_length = 1
 
 assert modelMMHC.edges() == modelHybrid.edges()
 
-pgmpyToGraph(modelMMHC)
+drawGraph(modelMMHC)

@@ -208,7 +208,7 @@ assert alarmModel_brief.check_model()
 
 
 # %% codecell
-pgmpyToGraphCPD(model = alarmModel, shorten = False)
+drawGraphCPD(model = alarmModel, shorten = False)
 
 
 # %% markdown [markdown]
@@ -222,11 +222,11 @@ alarmModel.local_independencies(Alarm.var)
 # %% codecell
 print(alarmModel.local_independencies(MaryCalls.var))
 
-indepSynonymTable(model = alarmModel, queryNode = MaryCalls.var)
+indepSynonymTable(model = alarmModel, query= MaryCalls.var)
 # %% codecell
 print(alarmModel.local_independencies(JohnCalls.var))
 
-indepSynonymTable(model = alarmModel, queryNode = JohnCalls.var)
+indepSynonymTable(model = alarmModel, query= JohnCalls.var)
 # %% codecell
 alarmModel.get_independencies()
 
@@ -235,7 +235,7 @@ alarmModel.get_independencies()
 # %% codecell
 # TODO say direct dependency assumptions (from Korb book)
 
-pgmpyToGraph(alarmModel)
+drawGraph(alarmModel)
 # %% markdown [markdown]
 # ### Study: Independence Maps (I-Maps)
 # * **Markov Assumption:** Bayesian networks require the assumption of **Markov Property**: that there are no direct dependencies in the system being modeled, which are not already explicitly shown via arcs. (In the earthquake example, this translates to saying there is no way for an `Earthquake` to influence `MaryCalls` except by way of the `Alarm`.  There is no **hidden backdoor** from  `Earthquake` to `MaryCalls`).
@@ -269,7 +269,7 @@ grade_cpd = TabularCPD(variable = Grade.var, variable_card = len(Grade.states),
 gradeModel.add_cpds(diff_cpd, intel_cpd, grade_cpd)
 
 
-pgmpyToGraphCPD(gradeModel)
+drawGraphCPD(gradeModel)
 
 # %% markdown [markdown]
 # Showing two ways of creating the `JointProbabilityDistribution`    : (1) by feeding in values manually, or (2) by using `reduce` over the `TabularCPD`s or `DiscreteFactor`s.
@@ -354,7 +354,7 @@ print(alarmJPD)
 
 
 # %% codecell
-pgmpyToGraph(alarmModel)
+drawGraph(alarmModel)
 # %% markdown [markdown]
 # ### Case 1: Marginal Dependence (for Causal Model)
 # For a causal model $A \rightarrow B \rightarrow C$, when the state of the middle node $B$ is unobserved, then an active trail is created between the nodes, namely the active trail is $A \rightarrow B \rightarrow C$. Information can now flow from node $A$ to node $C$ via node $B$. This implies there is a dependency between nodes $A$ and $C$, so the probability of $A$ taking on any of its states can influence the probability of $C$ taking on any of its states. This is called **marginal dependence** We can write this as: $P(A | C) \ne P(A)$
@@ -574,7 +574,7 @@ alarmModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and Burglary are conditionally independent on Alarm:
-indepSynonymTable(model = alarmModel_brief, queryNode = 'M')
+indepSynonymTable(model = alarmModel_brief, query='M')
 
 
 
@@ -667,7 +667,7 @@ assert (EAJ.values == EAJ_1.values).all() and (EAJ.values == EAJ_2.values).all()
 #   * **Conditional Independence:** ($B$ observed): When $B$ is fixed, there is NO active trail between $A$ and $C$, so they are independent. The probability of $A$ won't influence probability of $C$ (and vice versa) when $B$'s state is observed.
 
 # %% codecell
-pgmpyToGraph(alarmModel)
+drawGraph(alarmModel)
 # %% markdown [markdown]
 # ### Case 1: Marginal Dependence (for Evidential Model)
 #
@@ -817,7 +817,7 @@ alarmModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and Burglary are conditionally independent on Alarm:
-indepSynonymTable(model = alarmModel_brief, queryNode = 'M')
+indepSynonymTable(model = alarmModel_brief, query='M')
 
 
 
@@ -876,7 +876,7 @@ print(JAE)
 #   * **Conditional Independence:** ($B$ fixed): When $B$ is fixed, there is NO active trail between $A$ and $C$, so they are independent. The probability of $A$ won't influence probability of $C$ (and vice versa) when $B$'s state is observed.
 
 # %% codecell
-pgmpyToGraph(alarmModel)
+drawGraph(alarmModel)
 # %% markdown [markdown]
 # ### Case 1: Marginal Dependence (for Evidential Model)
 #
@@ -958,9 +958,9 @@ alarmModel.local_independencies(MaryCalls.var).closure()
 
 # %% codecell
 # See: MaryCalls and JohnCalls are conditionally independent on Alarm:
-indepSynonymTable(model = alarmModel_brief, queryNode = 'M')
+indepSynonymTable(model = alarmModel_brief, query='M')
 # %% codecell
-indepSynonymTable(model = alarmModel_brief, queryNode = 'J')
+indepSynonymTable(model = alarmModel_brief, query='J')
 
 
 # %% markdown [markdown]
@@ -1028,7 +1028,7 @@ print(MAJ)
 
 
 # %% codecell
-pgmpyToGraph(alarmModel)
+drawGraph(alarmModel)
 # %% markdown [markdown]
 # ### Case 1: Marginal Independence (for Common Evidence Model)
 #
@@ -1056,8 +1056,8 @@ assert indepBurgEarth == alarmModel.local_independencies(Earthquake.var), 'Check
 
 
 # See: MaryCalls and Burglary are marginally independent :
-print(indepSynonymTable(model = alarmModel, queryNode = Burglary.var))
-print(indepSynonymTable(model = alarmModel, queryNode = Earthquake.var))
+print(indepSynonymTable(model = alarmModel, query= Burglary.var))
+print(indepSynonymTable(model = alarmModel, query= Earthquake.var))
 
 
 # %% markdown [markdown]

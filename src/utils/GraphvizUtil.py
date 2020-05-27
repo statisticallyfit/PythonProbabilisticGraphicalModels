@@ -333,8 +333,8 @@ def pgmpyToTable(model: BayesianModel,
 
 
 # Just render graph from edge tuples
-def pgmpyToGraph(model: BayesianModel,
-                 nodeColor: Color = LIGHT_CORNF, edgeColor: Color = CHERRY) -> gz.Digraph:
+def drawGraph(model: BayesianModel,
+              nodeColor: Color = LIGHT_CORNF, edgeColor: Color = CHERRY) -> gz.Digraph:
 
     # Getting the edges (the .edges() results in NetworkX OutEdgeView object)
     structures: List[Tuple[Variable, Variable]] = list(iter(model.edges()))
@@ -346,11 +346,11 @@ def pgmpyToGraph(model: BayesianModel,
 
 
 
-def pgmpyToGraphCPD(model: BayesianModel, shorten: bool = True) -> gz.Digraph:
+def drawGraphCPD(model: BayesianModel, shorten: bool = True) -> gz.Digraph:
     '''
     Converts a pgmpy BayesianModel into a graphviz Digraph with its CPD tables drawn next to its nodes.
     '''
-    g: gz.Digraph = pgmpyToGraph(model)
+    g: gz.Digraph = drawGraph(model)
     variables: List[Variable] = list(iter(model.nodes))
 
     for var in variables:

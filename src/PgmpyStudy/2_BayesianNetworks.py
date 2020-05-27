@@ -183,10 +183,10 @@ assert model.check_model()
 # %% codecell
 from src.utils.GraphvizUtil import *
 
-pgmpyToGraph(model= model)
+drawGraph(model= model)
 
 # %% codecell
-pgmpyToGraphCPD(model)
+drawGraphCPD(model)
 # %% markdown [markdown]
 # We can now call some methods on the `BayesianModel` object
 # %% codecell
@@ -242,10 +242,10 @@ plt.show()
 from src.utils.NetworkUtil import *
 from src.utils.GraphvizUtil import *
 
-pgmpyToGraph(model= convertDaftToPgmpy(pgm = graphAToB))
+drawGraph(model= convertDaftToPgmpy(pgm = graphAToB))
 
 # %% codecell
-pgmpyToGraph(model= convertDaftToPgmpy(pgm = graphBToA))
+drawGraph(model= convertDaftToPgmpy(pgm = graphBToA))
 
 
 # %% markdown [markdown]
@@ -338,7 +338,7 @@ indepC: Independencies = evidentialModel.local_independencies('C')
 
 
 #indepSynonymTable(model = evidentialModel, queryNode ='C')
-indepSynonymTable(model = evidentialModel, queryNode ='A')
+indepSynonymTable(model = evidentialModel, query='A')
 
 # %% codecell
 # Continued on evidential model
@@ -361,13 +361,13 @@ assert commonEvidenceModel.local_independencies('B') == Independencies() # no in
 
 indepA: Independencies = commonEvidenceModel.local_independencies('A')
 assert indepA == Independencies(['A', ['C']]), 'Check: A is independent of C'
-assert str(indepA) in localIndependencySynonyms(model=commonEvidenceModel, queryNode='A')
+assert str(indepA) in localIndependencySynonyms(model=commonEvidenceModel, query='A')
 assert str(indepA) == '(A _|_ C)'
 
 
 indepC: Independencies = commonEvidenceModel.local_independencies('C'); indepC
 assert indepC == Independencies(['C',['A']]), 'Check: C is independent of both B and A'
-assert str(indepC) in localIndependencySynonyms(model=commonEvidenceModel, queryNode='C')
+assert str(indepC) in localIndependencySynonyms(model=commonEvidenceModel, query='C')
 assert str(indepC) == '(C _|_ A)'
 
 indeps = list(map(lambda x : str(x), commonEvidenceModel.get_independencies().get_assertions()))
@@ -403,7 +403,7 @@ assert indeps == ['(A _|_ C | B)', '(C _|_ A | B)'], 'Check: overall independenc
 # ### Study: Individual, Local Independencies for Grade Example
 # Using the example Grade structure, find the **individual** local independencies:
 # %% codecell
-pgmpyToGraph(model= model)
+drawGraph(model= model)
 
 
 # %% codecell
@@ -412,7 +412,7 @@ indepD: Independencies = model.local_independencies('D'); indepD
 # TODO pgmpy change
 # assert indepD == Independencies(['D', ['G', 'S', 'I', 'L']]), 'Check: D is independent of all G, S, I, and L'
 assert indepD == Independencies(['D', ['S', 'I']]), 'Check: D is independent of all S, I'
-assert str(indepD) in localIndependencySynonyms(model = model, queryNode ='D'), 'Check: D is independent of S, I'
+assert str(indepD) in localIndependencySynonyms(model = model, query='D'), 'Check: D is independent of S, I'
 
 indepSynonymTable(model, 'D')
 
@@ -422,7 +422,7 @@ indepI: Independencies = model.local_independencies('I'); indepI
 # TODO pgmpy change
 # assert indepI == Independencies(['I', ['G', 'S', 'L','D']]), 'Check: I is independent of all {G,S,L,D}'
 assert indepI == Independencies(['I', ['D']])
-assert str(indepI) in localIndependencySynonyms(model=model, queryNode='I')
+assert str(indepI) in localIndependencySynonyms(model=model, query='I')
 assert str(indepI) == '(I _|_ D)'
 
 # %% codecell
@@ -431,31 +431,31 @@ indepG: Independencies = model.local_independencies('G'); indepG
 # TODO pgmpy change
 #assert indepG == Independencies(['G', ['S', 'L'], ['I','D']]), 'Check: G is independent of (L, and S) given (I, and D)'
 assert indepG == Independencies(['G', ['S'], ['D', 'I']])
-assert str(indepG) in localIndependencySynonyms(model=model, queryNode='G')
+assert str(indepG) in localIndependencySynonyms(model=model, query='G')
 
-indepSynonymTable(model = model, queryNode ='G')
+indepSynonymTable(model = model, query='G')
 
 # %% codecell
 indepS: Independencies = model.local_independencies('S'); indepS
 
 assert indepS == Independencies(['S', ['D', 'G', 'L'], 'I']), 'Check: S is independent of {D,G,L} given I'
-assert str(indepS) in localIndependencySynonyms(model=model, queryNode='S')
+assert str(indepS) in localIndependencySynonyms(model=model, query='S')
 
-indepSynonymTable(model = model,queryNode='S')
+indepSynonymTable(model = model, query='S')
 
 # %% codecell
 indepL: Independencies = model.local_independencies('L'); indepL
 
 assert indepL == Independencies(['L', ['S','I','D'], 'G']), 'Check: L is independent of {S,I,D} given G'
-assert str(indepL) in localIndependencySynonyms(model=model, queryNode='L')
+assert str(indepL) in localIndependencySynonyms(model=model, query='L')
 
-indepSynonymTable(model = model,queryNode='L')
+indepSynonymTable(model = model, query='L')
 
 # %% markdown [markdown]
 # ### Study: Multiple Local Independencies for Grade Example
 # Using the example Grade structure, find the **n-way** local independencies: (they are just concatenations of the individual independencies)
 # %% codecell
-pgmpyToGraph(model)
+drawGraph(model)
 
 # %% codecell
 indep_DS: Independencies = model.local_independencies(['D','S']).get_assertions()
@@ -974,7 +974,7 @@ assert (causalModel.local_independencies('C') == indepC and
         "Check: A and C are independent once conditional on B (once B is fixed / observed)"
 
 
-indepSynonymTable(model = causalModel, queryNode = 'C')
+indepSynonymTable(model = causalModel, query='C')
 
 
 
@@ -1026,7 +1026,7 @@ assert (evidentialModel.local_independencies('A') == indepA and
         indepA == indepC),  \
         "Check: A and C are independent once conditional on B (once B is fixed / observed)"
 
-indepSynonymTable(model = evidentialModel, queryNode = 'A')
+indepSynonymTable(model = evidentialModel, query='A')
 
 
 
@@ -1077,8 +1077,8 @@ assert (commonCauseModel.local_independencies('C') == indepC and
         indepA == indepC),  \
         "Check: A and C are independent once conditional on B (once B is fixed / observed)"
 
-print(indepSynonymTable(model = commonCauseModel, queryNode = 'A'))
-print(indepSynonymTable(model = commonCauseModel, queryNode = 'C'))
+print(indepSynonymTable(model = commonCauseModel, query='A'))
+print(indepSynonymTable(model = commonCauseModel, query='C'))
 
 
 
@@ -1116,8 +1116,8 @@ assert (commonEvidenceModel.local_independencies('C') == indepC and
         indepA == indepC),  \
         "Check: A and C are marginally independent (independent even when not conditioning / fixing / observing B)"
 
-print(indepSynonymTable(model = commonEvidenceModel, queryNode = 'A'))
-print(indepSynonymTable(model = commonEvidenceModel, queryNode = 'C'))
+print(indepSynonymTable(model = commonEvidenceModel, query='A'))
+print(indepSynonymTable(model = commonEvidenceModel, query='C'))
 
 # %% markdown [markdown]
 # **$\color{MediumVioletRed}{\text{Case 2: Conditional Dependence}}$**
@@ -1147,7 +1147,7 @@ showActiveTrails(model = commonEvidenceModel, variables = ['A', 'C'], observed =
 student = BayesianModel()
 student.add_nodes_from(['diff', 'intel', 'grades'])
 student.add_edges_from([('diff', 'grades'), ('intel', 'grades')])
-pgmpyToGraph(student)
+drawGraph(student)
 
 
 # %% codecell
@@ -1161,7 +1161,7 @@ assert student.active_trail_nodes('diff', observed='grades')== {'diff': {'diff',
 # %% markdown [markdown]
 # ### Study: Larger Student Model's Active Trails
 # %% codecell
-pgmpyToGraph(model)
+drawGraph(model)
 # %% codecell
 assert model.active_trail_nodes('D', observed = 'G') == {'D': {'D', 'I', 'S'}}, "Check: Influencing Difficulty (D) must also change the Intelligence (I) and SAT score (S) of the student"
 showActiveTrails(model, variables = 'D', observed = 'G')
@@ -1249,7 +1249,7 @@ str(model.local_independencies('L'))
 # From the above equation we can clearly see that the Joint Distribution over all variables is just the product of all the CPDs in the network. Hence, encoding the inependencies in the Joint Distribution in a graph structure helped us in reducing the number of parameters that we need to store.
 # %% codecell
 # Very simple, simplistic (not always right?) way to get the cpd name: just putting the second variable second
-def cpdName(model: BayesianModel, node: Variable) -> str:
+def cpdName(model: BayesianModel, node: VariableName) -> str:
     variables = model.get_cpds(node).variables
     if len(variables) == 1:
         return 'P('  + variables[0] + ')'

@@ -126,11 +126,11 @@ assert model.check_model()
 
 
 # %% codecell
-pgmpyToGraph(model)
+drawGraph(model)
 # %% codecell
 pgmpyToGrid(model, 'G')
 
 
 # %% codecell
 
-pgmpyToGraphCPD(model)
+drawGraphCPD(model)

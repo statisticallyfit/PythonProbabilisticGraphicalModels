@@ -169,7 +169,7 @@ carModel: BayesianModel = BayesianModel([
 ])
 
 
-pgmpyToGraph(model = carModel)
+drawGraph(model = carModel)
 
 # %% markdown [markdown]
 # ## Step 3: Estimate CPDs
@@ -186,20 +186,20 @@ carModel.fit(data, estimator = BayesianEstimator,
 
 
 # %% codecell
-pgmpyTabularToDataFrame(carModel, queryVar = Time.var)
+conditionalDist(carModel, query= Time.var)
 # %% codecell
-pgmpyTabularToDataFrame(carModel, queryVar = ProcessType.var)
+conditionalDist(carModel, query= ProcessType.var)
 # %% codecell
-pgmpyTabularToDataFrame(carModel, queryVar = ToolType.var)
+conditionalDist(carModel, query= ToolType.var)
 # %% codecell
-pgmpyTabularToDataFrame(carModel, queryVar = ExperienceLevel.var)
+conditionalDist(carModel, query= ExperienceLevel.var)
 # %% codecell
-pgmpyTabularToDataFrame(carModel, queryVar = WorkCapacity.var)
+conditionalDist(carModel, query= WorkCapacity.var)
 # %% codecell
-pgmpyTabularToDataFrame(carModel, queryVar = InjuryType.var)
+conditionalDist(carModel, query= InjuryType.var)
 
 # %% codecell
-pgmpyTabularToDataFrame(carModel, queryVar = AbsenteeismLevel.var)
+conditionalDist(carModel, query= AbsenteeismLevel.var)
 
 
 
@@ -217,7 +217,7 @@ pgmpyTabularToDataFrame(carModel, queryVar = AbsenteeismLevel.var)
 
 
 # %% codecell
-pgmpyToGraph(carModel)
+drawGraph(carModel)
 # %% markdown [markdown]
 # #### Testing conditional independence:
 # $$
@@ -241,7 +241,7 @@ assert carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLe
 assert carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
 
 # Finding out which extra variable to condition on:
-assert observedVars(carModel, startVar = ExperienceLevel.var, endVar = AbsenteeismLevel.var) == [{'Time', 'WorkCapacity'}], "Check: all list of extra variables to condition on to nullify active trail between Experience and Absenteeism"
+assert observedVars(carModel, start= ExperienceLevel.var, end= AbsenteeismLevel.var) == [{'Time', 'WorkCapacity'}], "Check: all list of extra variables to condition on to nullify active trail between Experience and Absenteeism"
 
 # Check trail is nullified
 assert not carModel.is_active_trail(start = ExperienceLevel.var, end = AbsenteeismLevel.var, observed = [WorkCapacity.var] + [Time.var]), "Check: active trail between Experience and Absenteeism is nullified with the extra variable observed"
@@ -255,7 +255,7 @@ showActiveTrails(carModel, variables = [ExperienceLevel.var, AbsenteeismLevel.va
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[Variable, State] = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME}
+backdoorStates: Dict[VariableName, State] = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME}
 
 
 EWA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = backdoorStates)
@@ -265,6 +265,32 @@ EWA_1: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence 
 EWA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Medium'}))
 
 EWA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
+
+# %% codecell
+
+
+# %% codecell
+
+eliminateSlice(carModel, query = AbsenteeismLevel, evidence = {WorkCapacity.var :[ 'Low'], Time.var :[ 23], ExperienceLevel.var : ['High', 'Low', 'Medium']})
+
+Time_Mid
+WorkCapacity2 = RandomVariable(var = "WorkCapacity", states = ['Low'])
+ExperienceLevel2 = RandomVariable(var = "ExperienceLevel", states = ['High'])
+
+dfSingle = eliminate(carModel, query = AbsenteeismLevel, evidence = [WorkCapacity2, Time_Mid, ExperienceLevel2])
+dfSingle
+
+dfEWA = eliminate(carModel, query = AbsenteeismLevel, evidence = [WorkCapacity, Time_Big, ExperienceLevel])
+#dfEWA.loc[('Low', 23)]
+
+
+#dfEWA.xs(key = 'Low', level = 'WorkCapacity', axis=0)
+
+dfEWA
+
+
+
+
 
 print(EWA)
 # %% markdown [markdown]
@@ -338,7 +364,7 @@ showActiveTrails(carModel, variables = [ExperienceLevel.var, AbsenteeismLevel.va
 #OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[Variable, State] = {Time.var : OBS_STATE_TIME}
+backdoorStates: Dict[VariableName, State] = {Time.var : OBS_STATE_TIME}
 
 EA: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = backdoorStates)
 print(EA)
@@ -402,9 +428,9 @@ LATE: int = 30
 
 
 
-TimeSmall = RandomVariable(var = "Time", states = [EARLY, ONE_THIRD, TWO_THIRD, LATE])
+Time_EarlyLate = RandomVariable(var ="Time", states = [EARLY, ONE_THIRD, TWO_THIRD, LATE])
 
-backdoorStates: Dict[Variable, State] = {Time.var : EARLY}
+backdoorStates: Dict[VariableName, State] = {Time.var : EARLY}
 
 
 # For early time, studying effects of varying experience level on absenteeism
@@ -419,7 +445,7 @@ print(EA_early_2)
 print(EA_early_3)
 
 # %% codecell
-backdoorStates: Dict[Variable, State] = {Time.var : ONE_THIRD}
+backdoorStates: Dict[VariableName, State] = {Time.var : ONE_THIRD}
 
 # For first-third time, studying effects of varying experience level on absenteeism
 EA_onethird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
@@ -433,7 +459,7 @@ print(EA_onethird_2)
 print(EA_onethird_3)
 
 # %% codecell
-backdoorStates: Dict[Variable, State] = {Time.var : TWO_THIRD}
+backdoorStates: Dict[VariableName, State] = {Time.var : TWO_THIRD}
 
 # For two-third time, studying effects of varying experience level on absenteeism
 EA_twothird_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
@@ -447,7 +473,7 @@ print(EA_twothird_2) # higher probability of absentee = High when Experience = M
 print(EA_twothird_3)
 
 # %% codecell
-backdoorStates: Dict[Variable, State] = {Time.var : LATE}
+backdoorStates: Dict[VariableName, State] = {Time.var : LATE}
 
 # For late time, studying effects of varying experience level on absenteeism
 EA_late_1 = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
@@ -466,18 +492,20 @@ print(EA_late_3)
 # Summarizing disparate printing efforts above:
 # %% markdown
 # ### Causal Reasoning: Experience - Absenteeism
+
 # %% codecell
-experDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence= [ExperienceLevel, TimeSmall])
+experDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence = [ExperienceLevel, Time_EarlyLate])
+
 experDf
 # %% markdown
 # ### Causal Reasoning: Exertion - Absenteeism
 # %% codecell
-exertDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence= [ExertionLevel, TimeSmall])
+exertDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence= [ExertionLevel, Time_EarlyLate])
 exertDf
 # %% markdown
 # ### Causal Reasoning: Training - Absenteeism
 # %% codecell
-trainDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence= [TrainingLevel, TimeSmall])
+trainDf: DataFrame = eliminate(carModel, query = AbsenteeismLevel, evidence= [TrainingLevel, Time_EarlyLate])
 trainDf
 
 # %% markdown
@@ -486,7 +514,7 @@ trainDf
 
 absentDf: DataFrame = eliminate(carModel,
                                 query= AbsenteeismLevel,
-                                evidence = [ExertionLevel, TrainingLevel, ExperienceLevel, TimeSmall])
+                                evidence = [ExertionLevel, TrainingLevel, ExperienceLevel, Time_EarlyLate])
 absentDf
 
 
@@ -523,7 +551,7 @@ absentDf
 
 
 # %% codecell
-pgmpyToGraph(carModel)
+drawGraph(carModel)
 # %% markdown [markdown]
 # #### Testing marginal independence:
 # $$
@@ -549,7 +577,7 @@ assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.v
 assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
 
 # Finding out which extra variable to condition on: this is the backdoor
-assert observedVars(carModel, startVar = ExertionLevel.var, endVar = TrainingLevel.var) == [{'Time'}], "Check: all list of extra variables (backdoors) to condition on to ACTIVATE active trail between Exertion and Training"
+assert observedVars(carModel, start= ExertionLevel.var, end= TrainingLevel.var) == [{'Time'}], "Check: all list of extra variables (backdoors) to condition on to ACTIVATE active trail between Exertion and Training"
 
 
 
@@ -566,7 +594,7 @@ showActiveTrails(carModel, variables = [ExertionLevel.var, TrainingLevel.var], o
 # OBS_STATE_WORKCAPACITY: State = 'Low' # remember, not observing the state of the middle node.
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[Variable, State] = {Time.var : OBS_STATE_TIME}
+backdoorStates: Dict[VariableName, State] = {Time.var : OBS_STATE_TIME}
 
 TE: DiscreteFactor = elim.query(variables = [ExertionLevel.var], evidence = backdoorStates)
 
@@ -576,6 +604,12 @@ TE_2: DiscreteFactor = elim.query(variables = [ExertionLevel.var], evidence = ad
 
 TE_3: DiscreteFactor = elim.query(variables = [ExertionLevel.var], evidence = addEvidence(backdoorStates, {TrainingLevel.var : 'Low'}))
 print(TE)
+
+# %% markdown
+# Summary of above eliminations, in one chart:
+# %% codecell
+dfTE = eliminate(carModel, query = ExertionLevel, evidence = [TrainingLevel, Time_Mid])
+dfTE
 
 # %% markdown [markdown]
 #
@@ -654,7 +688,7 @@ showActiveTrails(carModel, variables = [ExertionLevel.var, TrainingLevel.var], o
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[Variable, State] = {Time.var: OBS_STATE_TIME, WorkCapacity.var : OBS_STATE_WORKCAPACITY}
+backdoorStates: Dict[VariableName, State] = {Time.var: OBS_STATE_TIME, WorkCapacity.var : OBS_STATE_WORKCAPACITY}
 
 TWE: DiscreteFactor = elim.query(variables = [ExertionLevel.var],
                                  evidence = backdoorStates)
@@ -712,10 +746,11 @@ assert not allEqual(TWE.values, TWE_1.values, TWE_2.values, TWE_3.values), "Chec
 # %% markdown
 # ### Common Effect Reasoning: Exertion --> WorkCapacity <-- Training
 # %% codecell
-TimeSmall = RandomVariable(var = "Time", states = [2, 30])
+Time_EarlyLate = RandomVariable(var ="Time", states = [2, 30])
+Time_Mid = RandomVariable(var ="Time", states = [23])
 # 1
 # backdoor state here
-observedVars(carModel, startVar = ExertionLevel.var, endVar = ExperienceLevel.var)
+observedVars(carModel, start= ExertionLevel.var, end= ExperienceLevel.var)
 # %% codecell
 assert carModel.is_active_trail(start = ExertionLevel.var, end = ExperienceLevel.var, observed = [Time.var, WorkCapacity.var]), "Check: that observing the backdoor state and middle node state CREATES an active trail between Exertion and Experience (common effect model)"
 # %% markdown
@@ -726,48 +761,48 @@ assert carModel.is_active_trail(start = ExertionLevel.var, end = ExperienceLevel
 # * ...
 # %% codecell
 # backdoor vars = workcapacity, Time
-df1 = eliminate(carModel, query = ExertionLevel, evidence = [WorkCapacity, TimeSmall, ExperienceLevel])
+df1 = eliminate(carModel, query = ExertionLevel, evidence = [WorkCapacity, Time_EarlyLate, ExperienceLevel])
 df1
 # %% codecell
 # 2
-observedVars(carModel, startVar = ExertionLevel.var, endVar = TrainingLevel.var)
+observedVars(carModel, start= ExertionLevel.var, end= TrainingLevel.var)
 # %% codecell
 assert carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = [Time.var, WorkCapacity.var]), "Check: that observing the backdoor state and middle node state CREATES an active trail between Exertion and TrainingLevel (common effect model)"
 # TODO observing none is also true but that cannot be true because there should be NO active trail when NOT observing the middle node WorkCpacity ???
 #carModel.is_active_trail(start = ExertionLevel.var, end = TrainingLevel.var, observed = None)
 # %% codecell
-df2 = eliminate(carModel, query = ExertionLevel, evidence = [WorkCapacity, TimeSmall, TrainingLevel])
+df2 = eliminate(carModel, query = ExertionLevel, evidence = [WorkCapacity, Time_EarlyLate, TrainingLevel])
 df2
 # %% codecell
 # 4
 # TODO left off here
-observedVars(carModel, startVar = WorkCapacity.var, endVar = Time.var)
+observedVars(carModel, start= WorkCapacity.var, end= Time.var)
 #backdoorAdjustSets(model = carModel, endVar = AbsenteeismLevel.var)
 #inf = CausalInference(carModel)
 #inf.get_all_backdoor_adjustment_sets(X = WorkCapacity.var, Y = Time.var)
 carModel.is_active_trail(start = WorkCapacity.var, end = Time.var, observed = [AbsenteeismLevel.var, WorkCapacity.var, Time.var])
 # %% codecell
-df1 = eliminate(carModel, query = WorkCapacity, evidence = [AbsenteeismLevel, ExperienceLevel, TimeSmall])
+df1 = eliminate(carModel, query = WorkCapacity, evidence = [AbsenteeismLevel, ExperienceLevel, Time_EarlyLate])
 df1
 # %% codecell
 # 5
-observedVars(carModel, startVar = Time.var, endVar = ExertionLevel.var)
+observedVars(carModel, start= Time.var, end= ExertionLevel.var)
 # %% codecell
 # 6
-observedVars(carModel, startVar = Time.var, endVar = ExperienceLevel.var)
+observedVars(carModel, start= Time.var, end= ExperienceLevel.var)
 # %% codecell
 # 7
-observedVars(carModel, startVar = Time.var, endVar = TrainingLevel.var)
+observedVars(carModel, start= Time.var, end= TrainingLevel.var)
 # %% codecell
 # 9
-observedVars(carModel, startVar = ProcessType.var, endVar = InjuryType.var)
+observedVars(carModel, start= ProcessType.var, end= InjuryType.var)
 # %% codecell
 # 10
-observedVars(carModel, startVar = ToolType.var, endVar = ProcessType.var)
+observedVars(carModel, start= ToolType.var, end= ProcessType.var)
 # %% codecell
 # 13
-observedVars(carModel, startVar = WorkCapacity.var, endVar = InjuryType.var)
+observedVars(carModel, start= WorkCapacity.var, end= InjuryType.var)
 # %% codecell
 # 14
-observedVars(carModel, startVar = Time.var, endVar = ProcessType.var)
+observedVars(carModel, start= Time.var, end= ProcessType.var)
 # %% codecell

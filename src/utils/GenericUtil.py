@@ -5,13 +5,13 @@ import itertools
 import numpy as np
 
 
-Variable = str
+VariableName = str
 State = str
 
 
 
 
-def tupleDoubleIntersect(doubleTuple: Tuple[Tuple[Variable, Set[Variable]], Tuple[Variable, Set[Variable]]]):
+def tupleDoubleIntersect(doubleTuple: Tuple[Tuple[VariableName, Set[VariableName]], Tuple[VariableName, Set[VariableName]]]):
     (keyA, setA), (keyB, setB) = doubleTuple
 
     if keyA == keyB:
@@ -24,8 +24,8 @@ def tupleDoubleIntersect(doubleTuple: Tuple[Tuple[Variable, Set[Variable]], Tupl
 
 
 
-def intersectDictValues(xs: Dict[Variable, Set[Variable]],
-                        ys: Dict[Variable, Set[Variable]]) -> Dict[Variable, Set[Variable]]:
+def intersectDictValues(xs: Dict[VariableName, Set[VariableName]],
+                        ys: Dict[VariableName, Set[VariableName]]) -> Dict[VariableName, Set[VariableName]]:
 
     # First sort the dictionaries by KEY so that we can satisfy the assumption of categorize tuple function, that there are no repetition of keys in either dicts:
     xsSorted = dict(sorted(xs.items()))
@@ -41,7 +41,7 @@ def intersectDictValues(xs: Dict[Variable, Set[Variable]],
 
 
 
-def tupleDoubleConcat(doubleTuple: Tuple[Tuple[Variable, Set[Variable]], Tuple[Variable, Set[Variable]]]):
+def tupleDoubleConcat(doubleTuple: Tuple[Tuple[VariableName, Set[VariableName]], Tuple[VariableName, Set[VariableName]]]):
     (keyA, setA), (keyB, setB) = doubleTuple
 
     # ASSUME: the case keyA == keyB is ignored in the addDicts function
@@ -76,7 +76,10 @@ def addDicts(d1: Dict[Variable, Set[Variable]],
 # Adds two dicts, assuming no keys are the same (so no var names are the same
 # Used for quickly concatenating the backdoor states dict to the extra testing dict (like backdoor states of work
 #  capacity and time dict added to the training level dict in the Car demo, for part 4/ intercausaul reasoning)
-def addEvidence(d1: Dict[Variable, State], d2: Dict[Variable, State]):
+
+# TODO explore how RandomVariable (named tuple) can be converted to DICT in Python 3.8
+
+def addEvidence(d1: Dict[VariableName, State], d2: Dict[VariableName, State]):
     return dict(list(d1.items()) + list(d2.items()))
 
 

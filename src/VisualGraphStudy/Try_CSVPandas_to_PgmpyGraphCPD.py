@@ -89,7 +89,7 @@ carModel: BayesianModel = BayesianModel([('Time', 'WorkCapacity'), ('TrainingLev
                                          ('WorkCapacity', 'AbsenteeismLevel')])
 #model: BayesianModel = BayesianModel([('Difficulty', 'Grade'), ('Intelligence', 'Grade'), ('Grade', 'Letter'), ('Intelligence', 'SAT')])
 
-pgmpyToGraph(model  = carModel)
+drawGraph(model  = carModel)
 
 # %% codecell
 # Next: convert the DataFrames (pandas) into TabularCPDS (pgmpy)
@@ -125,7 +125,7 @@ def dataframeToTabularCPD(variable: Variable, cardinality: int,
 
 
     # Getting the names of the conditional variables
-    condVars: List[Variable] = dataframe.columns[0 : numCondVars]
+    condVars: List[VariableName] = dataframe.columns[0: numCondVars]
 
     # Getting the cardinalities of each of the conditional variables
     condCardinalities: List[int] = [len(np.unique(dataframe[evidenceVar])) for evidenceVar in condVars]
@@ -147,7 +147,7 @@ def dataframeToTabularCPD(variable: Variable, cardinality: int,
     varStatesTuples = [(variable, varStates)]
 
     # Combining above information to create the dictionary of state names for the variable
-    stateNames: Dict[Variable, List[State]] = dict(varStatesTuples + condStatesTuples)
+    stateNames: Dict[VariableName, List[State]] = dict(varStatesTuples + condStatesTuples)
 
     # Now finally constructing the object:
     tabularCPD = TabularCPD(variable = variable, variable_card = cardinality,
@@ -175,7 +175,7 @@ carModel.add_cpds(cpd_usesop, cpd_process, cpd_injury, cpd_time, cpd_exertion, c
 #assert carModel.check_model() # TODO says sum of CPDs is not equal to 1 for WorkCapacity (atol=0.01 in is_valid_cpd() too low???)
 
 # %% codecell
-pgmpyToGraph(carModel)
+drawGraph(carModel)
 # %% codecell
 pgmpyToGrid(carModel, 'AbsenteeismLevel', shorten = False) # assert it is the same as CPD_absenteeism.get_values()
 
@@ -186,4 +186,4 @@ vals = pgmpyToGrid(carModel, 'AbsenteeismLevel', shorten = True) ; vals
 
 # %% codecell
 
-pgmpyToGraphCPD(carModel)
+drawGraphCPD(carModel)

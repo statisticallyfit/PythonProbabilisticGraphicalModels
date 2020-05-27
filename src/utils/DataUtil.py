@@ -11,14 +11,21 @@ from pandas.core.series import Series
 
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
+from pgmpy.factors.discrete.DiscreteFactor import DiscreteFactor
 
-
+import collections
 
 
 # Type aliases
-Variable = str
+VariableName = str
 State = str
 Probability = float
+
+
+RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
+
+
+
 
 def cleanData(data: DataFrame) -> DataFrame:
     cleanedData: DataFrame = data.copy().dropna() # copying and dropping rows with NA
@@ -43,7 +50,7 @@ def cleanData(data: DataFrame) -> DataFrame:
 
 # Going to pass this so that combinations of each of its values can be created
 # Sending the combinations data to csv file so it can be biased and tweaked so we can create training data:
-def makeData(dataDict: Dict[Variable, List[State]], fileName: str = None) -> DataFrame:
+def makeData(dataDict: Dict[VariableName, List[State]], fileName: str = None) -> DataFrame:
     '''
     Arguments:
         data: pandas DataFrame
@@ -67,8 +74,8 @@ def makeData(dataDict: Dict[Variable, List[State]], fileName: str = None) -> Dat
 
 
 
-def makeWhiteNoiseData(dataDict: Dict[Variable, List[State]],
-                       signalDict: Dict[Variable, List[State]],
+def makeWhiteNoiseData(dataDict: Dict[VariableName, List[State]],
+                       signalDict: Dict[VariableName, List[State]],
                        fileName: str = None) -> DataFrame:
     '''
     Creates stub data combinations using the signalDict, which represents var-states that we used to create the test
@@ -89,7 +96,7 @@ def makeWhiteNoiseData(dataDict: Dict[Variable, List[State]],
     '''
 
     # Step 1: create the white noise data
-    whiteNoiseDict: Dict[Variable, List[State]] = {}
+    whiteNoiseDict: Dict[VariableName, List[State]] = {}
 
     for var, states in dataDict.items():
 
@@ -113,15 +120,28 @@ def makeWhiteNoiseData(dataDict: Dict[Variable, List[State]],
 
 
 
-def pgmpyTabularToDataFrame(model: BayesianModel, queryVar: Variable) -> DataFrame:
+def conditionalDist(model: BayesianModel, query: RandomVariable) -> DataFrame:
+    '''
+    Given a query variable, gets its conditional TabularCPD and puts that into a pandas DataFrame
+    '''
     # Get the Tabular CPD (learned) from the model:
-    queryTCPD: TabularCPD = model.get_cpds(queryVar)
+    queryTCPD: TabularCPD = model.get_cpds(query.var)
 
+    return tabularCpdDf(cpd = queryTCPD)
+
+
+
+
+
+def factorDf(factor: DiscreteFactor) -> DataFrame:
+    '''
+    Converts a pgmpy DiscreteFactor to pandas DataFrame for nicer viewing
+    '''
     # Get names of variables (evidence vars) whose combos of states will go on top of the data frame
-    evidenceVars: List[Variable] = list(queryTCPD.state_names.keys())[1:]
+    evidenceVars: List[VariableName] = list(factor.state_names.keys())[1:]
 
     # Get all state names mapped to each variable
-    states: List[State] = list(queryTCPD.state_names.values())
+    states: List[State] = list(factor.state_names.values())
 
     # Create combinations of states to go on the horizontal part of the CPD dataframe
     evidenceStateCombos: List[Tuple[State, State]] = list(itertools.product(*states[1:]))
@@ -130,7 +150,35 @@ def pgmpyTabularToDataFrame(model: BayesianModel, queryVar: Variable) -> DataFra
     topColNames = [''] if evidenceVars == [] else pd.MultiIndex.from_tuples(evidenceStateCombos, names=evidenceVars)
 
 
-    df: DataFrame = DataFrame(data = queryTCPD.get_values(), index = states[0], columns = topColNames)
-    df.index.name = queryVar
+    df: DataFrame = DataFrame(data = factor.values, index = states[0], columns = topColNames)
+    df.index.name = factor.variables[0] # the query var name
+
+    # NOTE: do not transpose because usually we are passed a discrete factor with no evidence vars,
+    # and the single-var view is nicer when  not transposing
+    return df #.transpose()
+
+
+
+
+
+def tabularCpdDf(cpd: TabularCPD) -> DataFrame:
+    '''
+    Converts a pgmpy TabularCPD to pandas DataFrame for nicer viewing
+    '''
+    # Get names of variables (evidence vars) whose combos of states will go on top of the data frame
+    evidenceVars: List[VariableName] = list(cpd.state_names.keys())[1:]
+
+    # Get all state names mapped to each variable
+    states: List[State] = list(cpd.state_names.values())
+
+    # Create combinations of states to go on the horizontal part of the CPD dataframe
+    evidenceStateCombos: List[Tuple[State, State]] = list(itertools.product(*states[1:]))
+
+    # note: Avoiding error thrown when passing empty list of tuples to MultiIndex
+    topColNames = [''] if evidenceVars == [] else pd.MultiIndex.from_tuples(evidenceStateCombos, names=evidenceVars)
+
+
+    df: DataFrame = DataFrame(data = cpd.get_values(), index = states[0], columns = topColNames)
+    df.index.name = cpd.variable # the query var name
 
     return df.transpose()

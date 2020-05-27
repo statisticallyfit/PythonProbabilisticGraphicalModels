@@ -26,10 +26,18 @@ from pandas.core.frame import DataFrame
 
 # Type alias for clarity
 
-Variable = str
+VariableName = str
 Probability = float
 Trail = str
 State = str
+
+
+
+
+# Create named tuple class with names "Names" and "Objects"
+RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
+
+
 
 # ----------------------------------------------------
 
@@ -44,15 +52,15 @@ def convertDaftToPgmpy(pgm: daft.PGM) -> BayesianModel:
 # ----------------------------------------------------
 
 def localIndependencySynonyms(model: BayesianModel,
-                              queryNode: Variable,
-                              useNotation = False) -> List[Variable]:
+                              query: RandomVariable,
+                              useNotation = False) -> List[VariableName]:
     '''
     Generates all possible equivalent independencies, given a query node and separator nodes.
 
     For example, for the independency (G _|_ S, L | I, D), all possible equivalent independencies are made by permuting the letters S, L and I, D in their positions. An resulting equivalent independency would then be (G _|_ L, S | I, D) or (G _|_ L, S | D, I)  etc.
 
     Arguments:
-        queryNode: the node from which local independencies are to be calculated.
+        query: the node from which local independencies are to be calculated.
         condNodes: either List[str] or List[List[str]].
             ---> When it is List[str], it contains a list of nodes that are only after the conditional | sign. For instance, for (D _|_ G,S,L,I), the otherNodes = ['D','S','L','I'].
             ---> when it is List[List[str]], otherNodes contains usually two elements, the list of nodes BEFORE and AFTER the conditional | sign. For instance, for (G _|_ L, S | I, D), otherNodes = [ ['L','S'], ['I','D'] ], where the nodes before the conditional sign are L,S and the nodes after the conditional sign are I, D.
@@ -62,28 +70,28 @@ def localIndependencySynonyms(model: BayesianModel,
     '''
     # First check that the query node has local independencies!
     # TODO check how to match up with the otherNodes argument
-    if model.local_independencies(queryNode) == Independencies():
+    if model.local_independencies(query.var) == Independencies():
         return
 
 
-    locIndeps = model.local_independencies(queryNode)
+    locIndeps = model.local_independencies(query.var)
     _, condExpr = str(locIndeps).split('_|_')
 
-    condNodes: List[List[Variable]] = []
+    condNodes: List[List[VariableName]] = []
 
     if "|" in condExpr:
         beforeCond, afterCond = condExpr.split("|")
         # Removing the paranthesis after the last letter:
         afterCond = afterCond[0 : len(afterCond) - 1]
 
-        beforeCondList: List[Variable] = list(map(lambda letter: letter.strip(), beforeCond.split(",")))
-        afterCondList: List[Variable] = list(map(lambda letter: letter.strip(), afterCond.split(",")))
-        condNodes: List[List[Variable]] = [beforeCondList] + [afterCondList]
+        beforeCondList: List[VariableName] = list(map(lambda letter: letter.strip(), beforeCond.split(",")))
+        afterCondList: List[VariableName] = list(map(lambda letter: letter.strip(), afterCond.split(",")))
+        condNodes: List[List[VariableName]] = [beforeCondList] + [afterCondList]
 
     else: # just have an expr like "leters" that are only before cond
         beforeCond = condExpr[0 : len(condExpr) - 1]
-        beforeCondList: List[Variable] = list(map(lambda letter: letter.strip(), beforeCond.split(",")))
-        condNodes: List[List[Variable]] = [beforeCondList]
+        beforeCondList: List[VariableName] = list(map(lambda letter: letter.strip(), beforeCond.split(",")))
+        condNodes: List[List[VariableName]] = [beforeCondList]
 
     otherComboStrList = []
 
@@ -103,24 +111,24 @@ def localIndependencySynonyms(model: BayesianModel,
 
     # Do product of the after-before variable string combinations.
     # (For instance, given the list [['S,L', 'L,S'], ['D,I', 'I,D']], this operation returns the product list: [('S,L', 'D,I'), ('S,L', 'I,D'), ('L,S', 'D,I'), ('L,S', 'I,D')]
-    condComboStr: List[Tuple[Variable]] = list(itertools.product(*otherComboStrList))
+    condComboStr: List[Tuple[VariableName]] = list(itertools.product(*otherComboStrList))
 
     # Joining the individual strings in the tuples (above) with conditional sign '|'
     condComboStr: List[str] = list(map(lambda condPair : ' | '.join(condPair), condComboStr))
 
-    independencyCombos: List[str] = list(map(lambda letterComboStr : f"({queryNode} _|_ {letterComboStr})", condComboStr))
+    independencyCombos: List[str] = list(map(lambda letterComboStr : f"({query.var} _|_ {letterComboStr})", condComboStr))
 
     return independencyCombos
 
 
 
 
-def indepSynonymTable(model: BayesianModel, queryNode: Variable):
+def indepSynonymTable(model: BayesianModel, query: RandomVariable):
 
     # fancy independencies
-    xs: List[str] = localIndependencySynonyms(model = model, queryNode = queryNode, useNotation = True)
+    xs: List[str] = localIndependencySynonyms(model = model, query= query.var, useNotation = True)
     # regular notation independencies
-    ys: List[str] = localIndependencySynonyms(model = model, queryNode = queryNode)
+    ys: List[str] = localIndependencySynonyms(model = model, query= query.var)
 
     # Skip if no result (if not independencies)
     if xs is None and ys is None:
@@ -265,7 +273,7 @@ def jointDistribution(model: BayesianModel) -> JointProbabilityDistribution:
 
 # -------------------------------------------------------------------------------------
 
-def probChainRule(condAcc: List[Variable], acc: Variable = '') -> str:
+def probChainRule(condAcc: List[VariableName], acc: VariableName = '') -> str:
     '''
     Recursively applies the probability chain rule when given a list like [A, B, C] interprets this to be P(A, B,
     C) and decomposes it into 'P(A | B, C) * P(B | C) * P(C)'
@@ -285,19 +293,21 @@ def probChainRule(condAcc: List[Variable], acc: Variable = '') -> str:
 
 
 def activeTrails(model: BayesianModel,
-                 variables: List[Variable],
-                 observed: List[Variable] = None,
+                 variables: List[RandomVariable],
+                 observed: List[RandomVariable] = None,
                  skipSelfTrail: bool = True) -> List[Trail]:
 
     '''Creates trails by threading the way through the dictionary returned by the pgmpy function `active_trail_nodes`'''
+    varNames: List[VariableName] = list(map(lambda randomVar: randomVar.var, variables))
+    obsNames: List[VariableName] = list(map(lambda obsVar : obsVar.var, observed))
 
-    trails: Dict[Variable, Set[Variable]] = model.active_trail_nodes(variables = variables, observed = observed)
+    trails: Dict[VariableName, Set[VariableName]] = model.active_trail_nodes(variables = varNames, observed = obsNames)
 
-    trailTupleList: List[List[Tuple[Variable, Variable]]] = [[(startVar, endVar) for endVar in endVarList]
-                                                             for (startVar, endVarList) in trails.items()]
+    trailTupleList: List[List[Tuple[VariableName, VariableName]]] = [[(startVar, endVar) for endVar in endVarList]
+                                                                     for (startVar, endVarList) in trails.items()]
 
 
-    trailTuples: List[Tuple[Variable, Variable]] = list(itertools.chain(*trailTupleList))
+    trailTuples: List[Tuple[VariableName, VariableName]] = list(itertools.chain(*trailTupleList))
 
     if skipSelfTrail: # then remove the ones with same start and end
         trailTuples = list(filter(lambda tup : tup[0] != tup[1], trailTuples))
@@ -311,8 +321,8 @@ def activeTrails(model: BayesianModel,
 
 
 def showActiveTrails(model: BayesianModel,
-                     variables: List[Variable],
-                     observed: List[Variable] = None):
+                     variables: List[RandomVariable],
+                     observed: List[RandomVariable] = None):
 
     trails: List[Trail] = activeTrails(model, variables, observed)
     print('\n'.join(trails))
@@ -332,8 +342,8 @@ PAIR = "PAIR"
 
 
 # Gets all backdoor adjustment sets between the query var and all other nodes in the graph.
-def backdoorAdjustSets(model: BayesianModel, endVar: Variable,
-                       notation: str = ARROW) -> Dict[Variable, List[Set[Variable]]]:
+def backdoorAdjustSets(model: BayesianModel, node: RandomVariable,
+                       notation: str = ARROW) -> Dict[VariableName, List[Set[VariableName]]]:
 
     inference: CausalInference = CausalInference(model)
 
@@ -345,7 +355,7 @@ def backdoorAdjustSets(model: BayesianModel, endVar: Variable,
 
     # Getting the variables that will be used as evidence / observed to influence active trails (in other words,
     # the variables that must be set as observed in the query of variable elimination)
-    varAndObservedPairs = set([ (startVar, inference.get_all_backdoor_adjustment_sets(X = startVar, Y = endVar))
+    varAndObservedPairs = set([ (startVar, inference.get_all_backdoor_adjustment_sets(X = startVar, Y = node.var))
                                 for startVar in allVars])
     # remove null forzen sets
     #pairsOfPredObservedVars = list(filter(lambda pair: pair[1] != frozenset(), pairsOfPredObservedVars))
@@ -353,13 +363,13 @@ def backdoorAdjustSets(model: BayesianModel, endVar: Variable,
 
     # Attaching ev var to the frozen set adjustment sets (changing the frozenset datatype to be set on the inside and
     # list on the outside)
-    backdoorChoices: List[Tuple[Variable, Set[Variable]]] = list(itertools.chain(
-        *[[ (startVar, set(innerF)) for innerF in outerF] if outerF != frozenset() else [(startVar, None)]
-          for startVar, outerF in varAndObservedPairs])
+    backdoorChoices: List[Tuple[VariableName, Set[VariableName]]] = list(itertools.chain(
+        *[[ (startVar, set(innerFroz)) for innerFroz in outerFroz] if outerFroz != frozenset() else [(startVar, None)]
+          for startVar, outerFroz in varAndObservedPairs])
     )
 
     # Creating a dict to accumulate adjustment sets of the same keys (concatenating)
-    backdoorDict: Dict[Variable, List[Set[Variable]]] = {}
+    backdoorDict: Dict[VariableName, List[Set[VariableName]]] = {}
 
     for startVar, adjustSets in backdoorChoices:
 
@@ -371,10 +381,10 @@ def backdoorAdjustSets(model: BayesianModel, endVar: Variable,
 
     if notation == ARROW: #use arrows
         # Now creating the arrow between startvar and endvar (to make the path clear)
-        backdoorTrailDict: Dict[Trail, List[Set[Variable]]] = {}
+        backdoorTrailDict: Dict[Trail, List[Set[VariableName]]] = {}
 
         for startVar, adjustLists in backdoorDict.items():
-            backdoorTrailDict[f"{startVar} --> {endVar}"] = adjustLists
+            backdoorTrailDict[f"{startVar} --> {node.var}"] = adjustLists
 
 
         return backdoorTrailDict
@@ -383,37 +393,39 @@ def backdoorAdjustSets(model: BayesianModel, endVar: Variable,
 
         lists = []
         for startVar, adjustLists in backdoorDict.items():
-            lists.append(Pair(From = startVar, To = endVar, AdjustSets = adjustLists))
+            lists.append(Pair(From = startVar, To = node.var, AdjustSets = adjustLists))
 
         return lists
     else: # do some notation (if notation == None)
         return backdoorDict
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 # Uses backdoor adjustment sets to find potential observed variables that can nullify active trail nodes (for first
 # three models) and create active trail nodes (for common ev model)
 
 
-def observedVars(model: BayesianModel, startVar: Variable, endVar: Variable) -> List[Set[Variable]]:
+def observedVars(model: BayesianModel, start: RandomVariable, end: RandomVariable) -> List[Set[RandomVariable]]:
 
 
-    startBackdoors: Dict[Variable, List[Set[Variable]]] = backdoorAdjustSets(model, endVar = startVar, notation = None)
-    endBackdoors: Dict[Variable, List[Set[Variable]]] = backdoorAdjustSets(model, endVar = endVar, notation = None)
+    startBackdoors: Dict[VariableName, List[Set[VariableName]]] = backdoorAdjustSets(model, node= start, notation = None)
+    endBackdoors: Dict[VariableName, List[Set[VariableName]]] = backdoorAdjustSets(model, node= end, notation = None)
 
-    shortenedResult: List[Set[Variable]] = startBackdoors[endVar] + endBackdoors[startVar]
+    shortenedResult: List[Set[VariableName]] = startBackdoors[end.var] + endBackdoors[start.var]
 
     shortenedResult = list(filter(lambda elem : elem != None, shortenedResult))
 
     # If the list is empty then we must include the start and end vars so we can potentially nullify the active trail: thinking of test case processtype -> injurytype when the above shortenedresult == [] and where the startvar and endvar included as observed vars will nullify the active trail (no others are found)
-    shortenedResult = shortenedResult if shortenedResult != [] else [{startVar}, {endVar}]
+    shortenedResult = shortenedResult if shortenedResult != [] else [{start.var}, {end.var}]
 
     return mergeSubsets(shortenedResult) # merge teh subsets within this list
 
 
+# Helper functions below for observedVars function:
 
-def mergeSubsets(varSetList: List[Set[Variable]]) -> List[List[Variable]]:
+def mergeSubsets(varSetList: List[Set[VariableName]]) -> List[List[VariableName]]:
 
     # Step 1: create combination tuples
     combos = list(itertools.combinations(varSetList, r = 2)); combos
@@ -427,10 +439,10 @@ def mergeSubsets(varSetList: List[Set[Variable]]) -> List[List[Variable]]:
         curKey, curValue = combos[i]
         nextKey, nextValue = combos[i+1]
 
-        curKey: Tuple[Variable] = tuple(curKey) # so that it becomes hashable to allow search in the dict
+        curKey: Tuple[VariableName] = tuple(curKey) # so that it becomes hashable to allow search in the dict
 
         # Replacing the value or adding to it at the current key, leaving next key for next time if different.
-        valueAdd: List[Set[Variable]] = [curValue, nextValue] if curKey == nextKey else [curValue]
+        valueAdd: List[Set[VariableName]] = [curValue, nextValue] if curKey == nextKey else [curValue]
         gather[curKey] = valueAdd if curKey not in gather.keys() else gather[curKey] + valueAdd
 
     # Now do the last value:
@@ -443,7 +455,7 @@ def mergeSubsets(varSetList: List[Set[Variable]]) -> List[List[Variable]]:
 
     for sourceTuple, sets in gather.items():
 
-        sourceSet: Set[Variable] = set(sourceTuple)
+        sourceSet: Set[VariableName] = set(sourceTuple)
 
         for valueSet in sets:
 
@@ -462,16 +474,16 @@ def mergeSubsets(varSetList: List[Set[Variable]]) -> List[List[Variable]]:
 
 # if the result of the filter is empty then we have not merged that in the past, else if it is not empty then that
 # means we merged the sourceset in the past.
-def haveMergedInPast(sourceSet: Set[Variable], merged: List) -> bool:
-    zipSourceMerged: List[Tuple[Set[Variable], Set[Variable]]] = list(zip([sourceSet] * len(merged), merged))
+def haveMergedInPast(sourceSet: Set[VariableName], merged: List) -> bool:
+    zipSourceMerged: List[Tuple[Set[VariableName], Set[VariableName]]] = list(zip([sourceSet] * len(merged), merged))
 
-    pastMerges: List[Tuple[Set[Variable], Set[Variable]]] = list(filter(lambda tup : isOverlap(tup[0], tup[1]),
-                                                                        zipSourceMerged))
+    pastMerges: List[Tuple[Set[VariableName], Set[VariableName]]] = list(filter(lambda tup : isOverlap(tup[0], tup[1]),
+                                                                                zipSourceMerged))
     return len(pastMerges) != 0
 
 
 # Checks if either set is the subset of the other
-def isOverlap(set1: Set[Variable], set2: Set[Variable]) -> bool:
+def isOverlap(set1: Set[VariableName], set2: Set[VariableName]) -> bool:
     return set1.issubset(set2) or set1.issuperset(set2)
 
 
@@ -498,25 +510,27 @@ assert mergeSubsets(vals) == [{'D', 'E', 'F'}, {'C', 'D', 'F'}, {'A', 'D', 'F'},
 
 
 
-# ---------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 # Function that calculate the distributins based on variables given to pass as observed; we calculate the variable elimination based on all possible combos of the given variable states
 
 
 
-# Create named tuple class with names "Names" and "Objects"
-RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
-
+# TODO: check if the order in which values are displayed in the data frame are actually the order in which the
+#  elimination occurs (so check that the probabilities on a certain row actually CORRESPOND to the states of the
+#  random variables)
 
 def eliminate(model: BayesianModel,
               query: RandomVariable,
               evidence: List[RandomVariable] = None) -> DataFrame:
+    '''Does Variable Elimination for all the combinations of states of the given evidence variables, using the query
+    as the query variable'''
 
     elim = VariableElimination(model)
 
     if evidence is None:
-        marginalDist: DiscreteFactor = elim.query(variables = [query.var], evidence = None)
+        marginalDist: DiscreteFactor = elim.query(variables = [query.var], evidence = None, show_progress = False)
         queryProbs: List[Probability] = marginalDist.values
         topColNames = ['']
         ordStateNames: List[State] = list(marginalDist.state_names.values())[0]
@@ -525,29 +539,103 @@ def eliminate(model: BayesianModel,
         return df.transpose()
 
 
-    varStatePairs: List[List[Tuple[Variable, State]]] = [list(itertools.product(*([ev.var], ev.states))) for ev in evidence]
-
-    # Step 2: combine each pairs with the other
-    observedTuples: List[Tuple[Variable, State]] = list(itertools.product(*varStatePairs))
-    observed: List[Dict[Variable, State]] = list(map(lambda triple: dict(triple), observedTuples))
-
-
-    dists: List[DiscreteFactor] = [elim.query(variables = [query.var], evidence = evPair) for evPair in observed]
-
-    # Step 3: Create the data frame
-    evStates: List[State] = list(map(lambda evVar: evVar.states, evidence))
-    evStateCombos = list(itertools.product(*evStates))
     # The variable names of the given random variables
-    evNames: List[Variable] = list(map(lambda evVar: evVar.var, evidence))
+    evidenceNames: List[VariableName] = list(map(lambda node : node.var, evidence))
+    # The variable states of the given random variables
+    evidenceStates: List[List[State]] = list(map(lambda node : node.states, evidence))
 
-    queryProbs: List[List[Probability]] = np.asarray([dist.values for dist in dists]).T
+
+    # Step 1: connect each varname with each of its possible states:  [(var1, state1), (var1, state2)...]
+    varStatePairs: List[List[Tuple[VariableName, State]]] = [list(itertools.product(*([ev.var], ev.states))) for ev in evidence]
+
+    # Step 2: combine each pairs of a variable with those of other variables: [(var1, state1), (var2, state1)] ...
+    observedTuples: List[Tuple[VariableName, State]] = list(itertools.product(*varStatePairs))
+    # Convert each tuple to a dict
+    observed: List[Dict[VariableName, State]] = list(map(lambda triple: dict(triple), observedTuples))
+
+    # Step 3: Key step, eliminating using the evidence combo
+    condDists: List[DiscreteFactor] = [elim.query(variables = [query.var],
+                                              evidence = evDict,
+                                              show_progress = False) for evDict in observed]
+
+    # Step 4: Create the data frame
+    evStateCombos = list(itertools.product(*evidenceStates))
+
+    queryProbs: List[List[Probability]] = np.asarray([dist.values for dist in condDists]).T
 
     #topColNames = [''] if evidence == None else pd.MultiIndex.from_tuples(evStateCombos, names=evidence)
-    topColNames = pd.MultiIndex.from_tuples(evStateCombos, names=evNames)
+    topColNames = pd.MultiIndex.from_tuples(evStateCombos, names=evidenceNames)
 
     # Use the "ordered" state names instead of queryVar.states so that we get the actual order of the states as used in the Discrete Factor object
-    ordStateNames = list(dists[0].state_names.values() )[0]
+    ordStateNames = list(condDists[0].state_names.values() )[0]
     df: DataFrame = DataFrame(data = queryProbs, index = ordStateNames, columns = topColNames)
     df.index.name = query.var
 
     return df.transpose()
+
+
+
+
+
+def eliminateSlice(model: BayesianModel,
+                   query: RandomVariable,
+                   evidence: Dict[VariableName, List[State]] = None) -> DataFrame:
+    '''
+    Applies variable elimination to all possible combinations of the var-states in the passed evidence, for the query variable.
+    Arguments:
+        model
+        query: the variable on which variable elimination is done (to calculate the marginal or conditional CPD)
+        evidence: if None, we calculate marginal dist of query, else if evidence is given, the resulting dist we
+        calculate of query is called the conditional dist.
+        Is a dict of variable string names mapped to list of states we are interested in (may not be ALL states,
+        just a snapshot of states from other existing random variables)
+    Returns:
+        pandas dataframe of the marginal / conditional distribution for query.
+
+    '''
+    # Step 1: make the evidence list of name - states into random variables with singular states
+    # Each singular state becomes a single-element list in the random variable object
+    # NOTE: the nameStatePair[1] MUST be a list, cannot be a single non-iterable value like string or int.
+    evidenceVars: List[RandomVariable] = list(map(lambda nameStatePair : RandomVariable(var = nameStatePair[0],
+                                                                                        states = nameStatePair[1]),
+                                                  evidence.items()))
+    # Step 2: pass into the eliminate method
+    return eliminate(model, query = query, evidence = evidenceVars)
+
+
+
+
+
+
+def eliminateSlice2(model: BayesianModel,
+                   query: RandomVariable,
+                   evidence: Dict[VariableName, State] = None) -> DataFrame:
+    '''Does Variable Elimination for all the combinations of states of the given evidence variables, using the query
+    as the query variable'''
+
+    elim = VariableElimination(model)
+
+    if evidence is None:
+        marginalDist: DiscreteFactor = elim.query(variables = [query.var], evidence = None, show_progress = False)
+        queryProbs: List[Probability] = marginalDist.values
+        topColNames = ['']
+        queryOrderedStates: List[State] = list(marginalDist.state_names.values())[0]
+        df: DataFrame = DataFrame(data = queryProbs, index = queryOrderedStates, columns = topColNames)
+        df.index.name = query.var
+        return df.transpose()
+
+    # Step 3: Key step, eliminating using the evidence combo
+    condDist: DiscreteFactor = elim.query(variables = [query.var], evidence = evidence,  show_progress = False)
+
+    # COuld have just said join(tup) but need to make sure that all the values are strings too, otherwise this will
+    # throw error
+    varEqualState: List[str] = list(map(lambda tup : " = ".join( (tup[0], str(tup[1])) ), evidence.items()))
+    topColName: str = " ∩ ".join(varEqualState)
+
+    # Use the "ordered" state names instead of queryVar.states so that we get the actual order of the states as used in the Discrete Factor object
+    queryOrderedStates = list(condDist.state_names.values() )[0]
+
+    df: DataFrame = DataFrame(data = condDist.values, index = queryOrderedStates , columns = [topColName])
+    df.index.name = query.var
+
+    return df
