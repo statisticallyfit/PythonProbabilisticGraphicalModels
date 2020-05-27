@@ -605,37 +605,3 @@ def eliminateSlice(model: BayesianModel,
 
 
 
-
-
-def eliminateSlice2(model: BayesianModel,
-                   query: RandomVariable,
-                   evidence: Dict[VariableName, State] = None) -> DataFrame:
-    '''Does Variable Elimination for all the combinations of states of the given evidence variables, using the query
-    as the query variable'''
-
-    elim = VariableElimination(model)
-
-    if evidence is None:
-        marginalDist: DiscreteFactor = elim.query(variables = [query.var], evidence = None, show_progress = False)
-        queryProbs: List[Probability] = marginalDist.values
-        topColNames = ['']
-        queryOrderedStates: List[State] = list(marginalDist.state_names.values())[0]
-        df: DataFrame = DataFrame(data = queryProbs, index = queryOrderedStates, columns = topColNames)
-        df.index.name = query.var
-        return df.transpose()
-
-    # Step 3: Key step, eliminating using the evidence combo
-    condDist: DiscreteFactor = elim.query(variables = [query.var], evidence = evidence,  show_progress = False)
-
-    # COuld have just said join(tup) but need to make sure that all the values are strings too, otherwise this will
-    # throw error
-    varEqualState: List[str] = list(map(lambda tup : " = ".join( (tup[0], str(tup[1])) ), evidence.items()))
-    topColName: str = " ∩ ".join(varEqualState)
-
-    # Use the "ordered" state names instead of queryVar.states so that we get the actual order of the states as used in the Discrete Factor object
-    queryOrderedStates = list(condDist.state_names.values() )[0]
-
-    df: DataFrame = DataFrame(data = condDist.values, index = queryOrderedStates , columns = [topColName])
-    df.index.name = query.var
-
-    return df

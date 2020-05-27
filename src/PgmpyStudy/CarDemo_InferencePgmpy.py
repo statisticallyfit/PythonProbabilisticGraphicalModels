@@ -266,33 +266,18 @@ EWA_2: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence 
 
 EWA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
 
+print(EWA)
+# %% markdown
+# Showing same information in a neater way, so that evidence variables are shown explicitly as the conditional variables that they are:
 # %% codecell
 
+dfEWA: DataFrame = eliminateSlice(carModel, query = AbsenteeismLevel, evidence = {WorkCapacity.var :[ 'Low'], Time.var :[ 23], ExperienceLevel.var : ['High', 'Low', 'Medium']})
 
-# %% codecell
-
-eliminateSlice(carModel, query = AbsenteeismLevel, evidence = {WorkCapacity.var :[ 'Low'], Time.var :[ 23], ExperienceLevel.var : ['High', 'Low', 'Medium']})
-
-Time_Mid
-WorkCapacity2 = RandomVariable(var = "WorkCapacity", states = ['Low'])
-ExperienceLevel2 = RandomVariable(var = "ExperienceLevel", states = ['High'])
-
-dfSingle = eliminate(carModel, query = AbsenteeismLevel, evidence = [WorkCapacity2, Time_Mid, ExperienceLevel2])
-dfSingle
-
-dfEWA = eliminate(carModel, query = AbsenteeismLevel, evidence = [WorkCapacity, Time_Big, ExperienceLevel])
-#dfEWA.loc[('Low', 23)]
-
-
-#dfEWA.xs(key = 'Low', level = 'WorkCapacity', axis=0)
 
 dfEWA
 
 
 
-
-
-print(EWA)
 # %% markdown [markdown]
 #
 # The probabilities above are stated formulaically as follows:
@@ -377,6 +362,11 @@ print(EA_2)
 # %% codecell
 EA_3: DiscreteFactor = elim.query(variables = [AbsenteeismLevel.var], evidence = addEvidence(backdoorStates, {ExperienceLevel.var : 'Low'}))
 print(EA_3)
+# %% markdown
+# Stating the above information so that evidence variables are explicitly shown as conditional variables:
+# %% codecell
+dfEA = eliminateSlice(carModel, query = AbsenteeismLevel, evidence = {Time.var : [OBS_STATE_TIME], ExperienceLevel.var : ExperienceLevel.states})
+dfEA
 # %% markdown [markdown]
 #
 # The probabilities above are stated formulaically as follows:
@@ -608,7 +598,8 @@ print(TE)
 # %% markdown
 # Summary of above eliminations, in one chart:
 # %% codecell
-dfTE = eliminate(carModel, query = ExertionLevel, evidence = [TrainingLevel, Time_Mid])
+dfTE = eliminateSlice
+(carModel, query = ExertionLevel, evidence = {Time.var : [23], TrainingLevel.var : TrainingLevel.states})
 dfTE
 
 # %% markdown [markdown]
