@@ -299,7 +299,7 @@ def activeTrails(model: BayesianModel,
 
     '''Creates trails by threading the way through the dictionary returned by the pgmpy function `active_trail_nodes`'''
     varNames: List[VariableName] = list(map(lambda randomVar: randomVar.var, variables))
-    obsNames: List[VariableName] = list(map(lambda obsVar : obsVar.var, observed))
+    obsNames: List[VariableName] = None if observed is None else list(map(lambda obsVar : obsVar.var, observed))
 
     trails: Dict[VariableName, Set[VariableName]] = model.active_trail_nodes(variables = varNames, observed = obsNames)
 
@@ -410,8 +410,10 @@ def backdoorAdjustSets(model: BayesianModel, node: RandomVariable,
 def observedVars(model: BayesianModel, start: RandomVariable, end: RandomVariable) -> List[Set[RandomVariable]]:
 
 
-    startBackdoors: Dict[VariableName, List[Set[VariableName]]] = backdoorAdjustSets(model, node= start, notation = None)
-    endBackdoors: Dict[VariableName, List[Set[VariableName]]] = backdoorAdjustSets(model, node= end, notation = None)
+    startBackdoors: Dict[VariableName, List[Set[VariableName]]] = backdoorAdjustSets(model, node= start.var, notation =
+    None)
+    endBackdoors: Dict[VariableName, List[Set[VariableName]]] = backdoorAdjustSets(model, node= end.var, notation =
+    None)
 
     shortenedResult: List[Set[VariableName]] = startBackdoors[end.var] + endBackdoors[start.var]
 

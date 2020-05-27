@@ -118,20 +118,21 @@ def makeWhiteNoiseData(dataDict: Dict[VariableName, List[State]],
 # TODO put data frame to tabular cpd over here
 
 
+# TODO if no evidence then do not transpose
+# TODO left off here
 
-
-def conditionalDist(model: BayesianModel, query: RandomVariable) -> DataFrame:
+def conditionalDistDf(model: BayesianModel, query: RandomVariable) -> DataFrame:
     '''
     Given a query variable, gets its conditional TabularCPD and puts that into a pandas DataFrame
     '''
     # Get the Tabular CPD (learned) from the model:
     queryTCPD: TabularCPD = model.get_cpds(query.var)
 
-    return tabularCpdDf(cpd = queryTCPD)
+    return tabularDf(cpd = queryTCPD)
 
 
 
-
+# TODO if no evidence then do not transpose
 
 def factorDf(factor: DiscreteFactor) -> DataFrame:
     '''
@@ -161,7 +162,7 @@ def factorDf(factor: DiscreteFactor) -> DataFrame:
 
 
 
-def tabularCpdDf(cpd: TabularCPD) -> DataFrame:
+def tabularDf(cpd: TabularCPD) -> DataFrame:
     '''
     Converts a pgmpy TabularCPD to pandas DataFrame for nicer viewing
     '''

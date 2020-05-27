@@ -1,4 +1,4 @@
-Time,TrainingLevel,ExertionLevel,ExperienceLevel,WorkCapacity,ProcessType,ToolType,InjuryType,AbsenteeismLevel
+Time,Training,Exertion,Experience,WorkCapacity,Process,Tool,Injury,Absenteeism
 1,Low,Low,Low,High,Engine-Mount,Forklift,Fall-Gtm,High
 1,Low,Low,Low,High,Engine-Mount,Forklift,Contact-Contusion,High
 1,Low,Low,Low,High,Engine-Mount,Forklift,Fall-Gtm,High
