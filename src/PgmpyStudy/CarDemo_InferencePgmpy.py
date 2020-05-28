@@ -7,10 +7,7 @@
 # %% codecell
 import os
 import sys
-from typing import *
-from typing import Union, List, Any
 
-import itertools
 
 os.getcwd()
 # Setting the baseline:
@@ -52,11 +49,18 @@ from pgmpy.independencies.Independencies import IndependenceAssertion
 from operator import mul
 from functools import reduce
 
+import itertools
+import collections
 
 from src.utils.GraphvizUtil import *
 from src.utils.NetworkUtil import *
 from src.utils.DataUtil import *
 from src.utils.GenericUtil import *
+
+from typing import *
+
+# My type alias for clarity
+from src.utils.TypeAliases import *
 
 import pandas as pd
 from pandas.core.frame import DataFrame
@@ -65,60 +69,59 @@ from pandas.core.frame import DataFrame
 # %% markdown [markdown]
 # ## Step 1: Creating / Loading Data
 # %% codecell
-import collections
 
 # Create named tuple class with names "Names" and "Objects"
-RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
+#RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"]) # already in type aliases
 
 
-Process = RandomVariable(var ="Process", states = ['Accel-Pedal',
-                                                            'Door-Mount',
-                                                            'Engine-Mount',
-                                                            'Engine-Wiring',
-                                                            'Oil-Fill',
-                                                            'Sun-Roof-Housing'])
+Process = RandomVariable(var ="Process", states = {'Accel-Pedal',
+                                                    'Door-Mount',
+                                                    'Engine-Mount',
+                                                    'Engine-Wiring',
+                                                    'Oil-Fill',
+                                                    'Sun-Roof-Housing'})
 
-Tool = RandomVariable(var ="Tool", states = ['Forklift', 'Front-Right-Door', 'Oil', 'Power-Gun'])
+Tool = RandomVariable(var ="Tool", states = {'Forklift', 'Front-Right-Door', 'Oil', 'Power-Gun'})
 
-Injury = RandomVariable(var ="Injury", states = ['Chemical-Burn',
-                                                          'Contact-Contusion',
-                                                          'Electrical-Burn',
-                                                          'Electrical-Shock',
-                                                          'Fall-Gtm'])
+Injury = RandomVariable(var ="Injury", states = {'Chemical-Burn',
+                                                  'Contact-Contusion',
+                                                  'Electrical-Burn',
+                                                  'Electrical-Shock',
+                                                  'Fall-Gtm'})
 
 #Absenteeism = RandomVariable(var = "Absenteeism", states =  ['Absenteeism-00',
 #                                                                       'Absenteeism-01',
 #                                                                       'Absenteeism-02',
 #                                                                       'Absenteeism-03'])
-Absenteeism = RandomVariable(var ="Absenteeism", states =  ['Low', 'Medium', 'High'])
+Absenteeism = RandomVariable(var ="Absenteeism", states =  {'Low', 'Medium', 'High'})
 
 
 # Make 30 days to represent 1 month
-Time = RandomVariable(var = "Time", states = list(range(1, 31))) # list(map(lambda day : str(day), range(1, 31))))
+Time = RandomVariable(var = "Time", states = set(range(1, 31))) # list(map(lambda day : str(day), range(1, 31))))
 
 #Training = RandomVariable(var = "Training", states = ['Training-00',
 #                                                                'Training-01',
 #                                                                'Training-02',
 #                                                                'Training-03'])
-Training = RandomVariable(var ="Training", states = ['Low', 'Medium', 'High'])
+Training = RandomVariable(var ="Training", states = {'Low', 'Medium', 'High'})
 
 #Exertion = RandomVariable(var = "Exertion", states = ['Exertion-00',
 #                                                                'Exertion-01',
 #                                                                'Exertion-02',
 #                                                                'Exertion-03'])
-Exertion = RandomVariable(var ="Exertion", states = ['Low', 'Medium', 'High'])
+Exertion = RandomVariable(var ="Exertion", states = {'Low', 'Medium', 'High'})
 
 #Experience = RandomVariable(var = "Experience", states = ['Experience-00',
 #                                                                    'Experience-01',
 #                                                                    'Experience-02',
 #                                                                    'Experience-03'])
-Experience = RandomVariable(var ="Experience", states = ['Low', 'Medium', 'High'])
+Experience = RandomVariable(var ="Experience", states = {'Low', 'Medium', 'High'})
 
 #WorkCapacity = RandomVariable(var = "WorkCapacity", states = ['WorkCapacity-00',
 #                                                              'WorkCapacity-01',
 #                                                              'WorkCapacity-02',
 #                                                              'WorkCapacity-03'])
-WorkCapacity = RandomVariable(var = "WorkCapacity", states = ['Low', 'Medium', 'High'])
+WorkCapacity = RandomVariable(var = "WorkCapacity", states = {'Low', 'Medium', 'High'})
 
 dataDict = {Time.var : Time.states,
             Training.var : Training.states,
@@ -241,7 +244,7 @@ assert carModel.is_active_trail(start = Experience.var, end = Absenteeism.var, o
 assert carModel.is_active_trail(start = Experience.var, end = Absenteeism.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
 
 # Finding out which extra variable to condition on:
-assert observedVars(carModel, start= Experience.var, end= Absenteeism.var) == [{'Time', 'WorkCapacity'}], "Check: all list of extra variables to condition on to nullify active trail between Experience and Absenteeism"
+assert observedVars(carModel, start= Experience, end= Absenteeism) == [{Time.var, WorkCapacity.var}], "Check: all list of extra variables to condition on to nullify active trail between Experience and Absenteeism"
 
 # Check trail is nullified
 assert not carModel.is_active_trail(start = Experience.var, end = Absenteeism.var, observed =[WorkCapacity.var] + [Time.var]), "Check: active trail between Experience and Absenteeism is nullified with the extra variable observed"
@@ -255,16 +258,16 @@ showActiveTrails(carModel, variables = [Experience, Absenteeism], observed = [Wo
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[VariableName, State] = {WorkCapacity.var : OBS_STATE_WORKCAPACITY, Time.var : OBS_STATE_TIME}
+backdoorStates: Dict[Name, Set[State]] = {WorkCapacity.var : {OBS_STATE_WORKCAPACITY}, Time.var : {OBS_STATE_TIME}}
 
 
 EWA: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates)
 
-EWA_1: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = addEvidence(backdoorStates, {Experience.var : 'High'}))
+EWA_1: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'High'}})
 
-EWA_2: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = addEvidence(backdoorStates, {Experience.var : 'Medium'}))
+EWA_2: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'Medium'}})
 
-EWA_3: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = addEvidence(backdoorStates, {Experience.var : 'Low'}))
+EWA_3: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'Low'}})
 
 print(EWA)
 # %% markdown
@@ -342,18 +345,19 @@ showActiveTrails(carModel, variables = [Experience, Absenteeism], observed = Non
 # %% codecell
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[VariableName, State] = {Time.var : OBS_STATE_TIME}
+# TODO left off here: must make backdoor states type compatible with |plus| but also with elim.query() arguments
+backdoorStates: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
 
 EA: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates)
 print(EA)
 # %% codecell
-EA_1: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = addEvidence(backdoorStates, {Experience.var : 'High'}))
+EA_1: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'High'}})
 print(EA_1)
 # %% codecell
-EA_2: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = addEvidence(backdoorStates, {Experience.var : 'Medium'}))
+EA_2: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'Medium'}})
 print(EA_2)
 # %% codecell
-EA_3: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = addEvidence(backdoorStates, {Experience.var : 'Low'}))
+EA_3: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'Low'}})
 print(EA_3)
 # %% markdown
 # The probabilities above are stated formulaically as follows:
@@ -391,7 +395,10 @@ print(EA_3)
 assert not allEqual(EA.values, EA_1.values, EA_2.values, EA_3.values), "Check: the random variables Experience and Absenteeism are dependent, when intermediary node WorkCapacity is NOT observed (while accounting for backdoors)"
 
 
-dfEA = eliminateSlice(carModel, query = Absenteeism, evidence = {Time.var : [OBS_STATE_TIME], Experience.var : Experience.states})
+
+backdoorStates: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
+
+dfEA = eliminateSlice(carModel, query = Absenteeism, evidence = backdoorStates |plus| {Experience.var : Experience.states})
 dfEA
 
 
@@ -400,28 +407,28 @@ dfEA
 # Since the probabilities of `Absenteeism = High` are NOT the same, across all varying conditions of `Time` and `Experience`, this means that there is an active trail between `Experience` and `Absenteeism`.
 
 # %% codecell
-backdoorStates: Dict[VariableName, List[State]] = {Time.var : [2, 15, 30]}
+backdoorStates: Dict[Name, Set[State]] = {Time.var : {2, 15 , 30}}
 
-dfEA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = addEvidence(backdoorStates, {Experience.var : Experience.states}))
+dfEA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = backdoorStates |plus| {Experience.var : Experience.states})
 dfEA
 # %% markdown
 # ### Causal Reasoning: Exertion - Absenteeism Effect
 # Since the probabilities of `Absenteeism = High` are NOT the same, across all varying conditions of `Time` and `Exertion`, this means that there is an active trail between `Exertion` and `Absenteeism`.
 
 # %% codecell
-backdoorStates: Dict[VariableName, List[State]] = {Time.var : [2, 15, 30]}
+backdoorStates: Dict[Name, Set[State]] = {Time.var : {2, 15, 30}}
 
-dfXA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = addEvidence(backdoorStates, {Exertion.var : Exertion.states}))
+dfXA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = backdoorStates |plus| {Exertion.var : Exertion.states})
 dfXA
 # %% markdown
 # ### Causal Reasoning: Training - Absenteeism Effect
 # Since the probabilities of `Absenteeism = High` are NOT the same, across all varying conditions of `Time` and `Training`, this means that there is an active trail between `Training` and `Absenteeism`.
 
 # %% codecell
-backdoorStates: Dict[VariableName, List[State]] = {Time.var : [2, 15, 30]}
+backdoorStates: Dict[Name, Set[State]] = {Time.var : {2, 15, 30}}
 
 
-dfTA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = addEvidence(backdoorStates, {Training.var : Training.states}))
+dfTA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = backdoorStates |plus| {Training.var : Training.states})
 dfTA
 
 # %% markdown
@@ -429,11 +436,13 @@ dfTA
 # %% codecell
 
 #carModel.is_active_trail(start = [Exertion.var, Training.var, Experience.var], end = Absenteeism.var)
-backdoorStates: Dict[VariableName, List[State]] = {Time.var : [2, 30]}
+backdoorStates: Dict[Name, Set[State]] = {Time.var : {2, 30}}
 
 dfEETA: DataFrame = eliminateSlice(carModel,
                                    query = Absenteeism,
-                                   evidence = addEvidence(backdoorStates, {Exertion.var : Exertion.states, Training.var : Training.states, Experience.var : Experience.states}))
+                                   evidence = backdoorStates |plus| {Exertion.var : Exertion.states,
+                                                                     Training.var : Training.states,
+                                                                     Experience.var : Experience.states})
 dfEETA
 
 
@@ -502,24 +511,25 @@ showActiveTrails(carModel, variables = [Exertion, Training], observed = [WorkCap
 # OBS_STATE_WORKCAPACITY: State = 'Low' # remember, not observing the state of the middle node.
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[VariableName, State] = {Time.var : OBS_STATE_TIME}
+backdoorStates: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
 
 TE: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = backdoorStates)
 
-TE_1: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = addEvidence(backdoorStates, {Training.var : 'High'}))
+TE_1: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = backdoorStates |plus| {Training.var : {'High'}})
 
-TE_2: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = addEvidence(backdoorStates, {Training.var : 'Medium'}))
+TE_2: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = backdoorStates |plus| {Training.var : {'Medium'}})
 
-TE_3: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = addEvidence(backdoorStates, {Training.var : 'Low'}))
+TE_3: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = backdoorStates |plus| {Training.var : {'Low'}})
 print(TE)
 
 # %% markdown
 # Summary of above eliminations, in one chart:
 # %% codecell
-backdoorStates: Dict[VariableName, State] = {Time.var : OBS_STATE_TIME}
+backdoorStates: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
 
-dfTE = eliminateSlice(carModel, query = Exertion,
-                      evidence = addEvidence(backdoorStates, {Training.var :Training.states}))
+dfTE = eliminateSlice(carModel,
+                      query = Exertion,
+                      evidence = backdoorStates |plus| {Training.var : Training.states})
 dfTE
 
 # %% markdown [markdown]
@@ -599,7 +609,7 @@ showActiveTrails(carModel, variables = [Exertion, Training], observed = [WorkCap
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[VariableName, State] = {Time.var: OBS_STATE_TIME, WorkCapacity.var : OBS_STATE_WORKCAPACITY}
+backdoorStates: Dict[Name, Set[State]] = {Time.var: {OBS_STATE_TIME}, WorkCapacity.var : {OBS_STATE_WORKCAPACITY} }
 
 TWE: DiscreteFactor = elim.query(variables = [Exertion.var],
                                  evidence = backdoorStates)
@@ -607,15 +617,15 @@ print(TWE)
 # %% codecell
 
 TWE_1: DiscreteFactor = elim.query(variables = [Exertion.var],
-                                   evidence = addEvidence(backdoorStates, {Training.var : 'High'}))
+                                   evidence = backdoorStates |plus| {Training.var : {'High'}})
 print(TWE_1)
 # %% codecell
 TWE_2: DiscreteFactor = elim.query(variables = [Exertion.var],
-                                   evidence = addEvidence(backdoorStates, {Training.var : 'Medium'}))
+                                   evidence = backdoorStates |plus| {Training.var : {'Medium'}})
 print(TWE_2)
 # %% codecell
 TWE_3: DiscreteFactor = elim.query(variables = [Exertion.var],
-                                   evidence = addEvidence(backdoorStates, {Training.var : 'Low'}))
+                                   evidence = backdoorStates |plus| {Training.var : {'Low'}})
 print(TWE_3)
 # %% markdown [markdown]
 #
@@ -654,10 +664,10 @@ assert not allEqual(TWE.values, TWE_1.values, TWE_2.values, TWE_3.values), "Chec
 
 
 
-backdoorStates: Dict[VariableName, State] = {Time.var: OBS_STATE_TIME, WorkCapacity.var : OBS_STATE_WORKCAPACITY}
+backdoorStates: Dict[Name, Set[State]] = {Time.var: {OBS_STATE_TIME}, WorkCapacity.var : {OBS_STATE_WORKCAPACITY}}
 
 dfTWE = eliminateSlice(carModel, query = Exertion,
-                      evidence = addEvidence(backdoorStates, {Training.var : Training.states}))
+                       evidence = backdoorStates |plus| {Training.var : Training.states})
 dfTWE
 
 
@@ -667,9 +677,9 @@ dfTWE
 # 4
 # TODO left off here
 
-Time_EarlyLate = RandomVariable(var = "Time", states = [2, 30])
+Time_EarlyLate = RandomVariable(var = "Time", states = {2, 30})
 
-observedVars(carModel, start= WorkCapacity.var, end= Time.var)
+observedVars(carModel, start= WorkCapacity, end= Time)
 #backdoorAdjustSets(model = carModel, endVar = Absenteeism.var)
 #inf = CausalInference(carModel)
 #inf.get_all_backdoor_adjustment_sets(X = WorkCapacity.var, Y = Time.var)
@@ -679,23 +689,23 @@ df4 = eliminate(carModel, query = WorkCapacity, evidence = [Absenteeism, Experie
 df4
 # %% codecell
 # 5
-observedVars(carModel, start= Time.var, end= Exertion.var)
+observedVars(carModel, start= Time, end= Exertion)
 # %% codecell
 # 6
-observedVars(carModel, start= Time.var, end= Experience.var)
+observedVars(carModel, start= Time, end= Experience)
 # %% codecell
 # 7
-observedVars(carModel, start= Time.var, end= Training.var)
+observedVars(carModel, start= Time, end= Training)
 # %% codecell
 # 9
-observedVars(carModel, start= Process.var, end= Injury.var)
+observedVars(carModel, start= Process, end= Injury)
 # %% codecell
 # 10
-observedVars(carModel, start= Tool.var, end= Process.var)
+observedVars(carModel, start= Tool, end= Process)
 # %% codecell
 # 13
-observedVars(carModel, start= WorkCapacity.var, end= Injury.var)
+observedVars(carModel, start= WorkCapacity, end= Injury)
 # %% codecell
 # 14
-observedVars(carModel, start= Time.var, end= Process.var)
+observedVars(carModel, start= Time, end= Process)
 # %% codecell

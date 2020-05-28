@@ -316,7 +316,7 @@ from causalnex.inference import InferenceEngine
 eng = InferenceEngine(bn = bayesNet)
 
 # querying the baseline marginals as learned from the data
-marginalDist: Dict[Variable, Dict[State, Probability]] = eng.query()
+marginalDist: Dict[Name, Dict[State, Probability]] = eng.query()
 marginalDist
 
 # %% markdown [markdown]

@@ -99,7 +99,7 @@ drawGraph(model  = carModel)
 from pgmpy.factors.discrete.CPD import TabularCPD
 
 
-def dataframeToTabularCPD(variable: Variable, cardinality: int,
+def dataframeToTabularCPD(variable: Name, cardinality: int,
                           dataframe: DataFrame, convertFromPercent: bool = True) -> TabularCPD:
     '''
     Convert pandas.DataFrame to pgmpy TabularCPD
@@ -125,7 +125,7 @@ def dataframeToTabularCPD(variable: Variable, cardinality: int,
 
 
     # Getting the names of the conditional variables
-    condVars: List[VariableName] = dataframe.columns[0: numCondVars]
+    condVars: List[Name] = dataframe.columns[0: numCondVars]
 
     # Getting the cardinalities of each of the conditional variables
     condCardinalities: List[int] = [len(np.unique(dataframe[evidenceVar])) for evidenceVar in condVars]
@@ -147,7 +147,7 @@ def dataframeToTabularCPD(variable: Variable, cardinality: int,
     varStatesTuples = [(variable, varStates)]
 
     # Combining above information to create the dictionary of state names for the variable
-    stateNames: Dict[VariableName, List[State]] = dict(varStatesTuples + condStatesTuples)
+    stateNames: Dict[Name, List[State]] = dict(varStatesTuples + condStatesTuples)
 
     # Now finally constructing the object:
     tabularCPD = TabularCPD(variable = variable, variable_card = cardinality,

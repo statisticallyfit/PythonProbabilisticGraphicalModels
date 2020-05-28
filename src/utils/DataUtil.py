@@ -17,12 +17,9 @@ import collections
 
 
 # Type aliases
-VariableName = str
-State = str
-Probability = float
+from src.utils.TypeAliases import *
 
 
-RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
 
 
 
@@ -50,7 +47,7 @@ def cleanData(data: DataFrame) -> DataFrame:
 
 # Going to pass this so that combinations of each of its values can be created
 # Sending the combinations data to csv file so it can be biased and tweaked so we can create training data:
-def makeData(dataDict: Dict[VariableName, List[State]], fileName: str = None) -> DataFrame:
+def makeData(dataDict: Dict[Name, List[State]], fileName: str = None) -> DataFrame:
     '''
     Arguments:
         data: pandas DataFrame
@@ -74,8 +71,8 @@ def makeData(dataDict: Dict[VariableName, List[State]], fileName: str = None) ->
 
 
 
-def makeWhiteNoiseData(dataDict: Dict[VariableName, List[State]],
-                       signalDict: Dict[VariableName, List[State]],
+def makeWhiteNoiseData(dataDict: Dict[Name, List[State]],
+                       signalDict: Dict[Name, List[State]],
                        fileName: str = None) -> DataFrame:
     '''
     Creates stub data combinations using the signalDict, which represents var-states that we used to create the test
@@ -96,7 +93,7 @@ def makeWhiteNoiseData(dataDict: Dict[VariableName, List[State]],
     '''
 
     # Step 1: create the white noise data
-    whiteNoiseDict: Dict[VariableName, List[State]] = {}
+    whiteNoiseDict: Dict[Name, List[State]] = {}
 
     for var, states in dataDict.items():
 
@@ -115,11 +112,7 @@ def makeWhiteNoiseData(dataDict: Dict[VariableName, List[State]],
 
 # ----------------------------------------------------------------------------------------------
 
-# TODO put data frame to tabular cpd over here
 
-
-# TODO if no evidence then do not transpose
-# TODO left off here
 
 def conditionalDistDf(model: BayesianModel, query: RandomVariable) -> DataFrame:
     '''
@@ -132,42 +125,13 @@ def conditionalDistDf(model: BayesianModel, query: RandomVariable) -> DataFrame:
 
 
 
-# TODO if no evidence then do not transpose
-
-def factorDf(factor: DiscreteFactor) -> DataFrame:
-    '''
-    Converts a pgmpy DiscreteFactor to pandas DataFrame for nicer viewing
-    '''
-    # Get names of variables (evidence vars) whose combos of states will go on top of the data frame
-    evidenceVars: List[VariableName] = list(factor.state_names.keys())[1:]
-
-    # Get all state names mapped to each variable
-    states: List[State] = list(factor.state_names.values())
-
-    # Create combinations of states to go on the horizontal part of the CPD dataframe
-    evidenceStateCombos: List[Tuple[State, State]] = list(itertools.product(*states[1:]))
-
-    # note: Avoiding error thrown when passing empty list of tuples to MultiIndex
-    topColNames = [''] if evidenceVars == [] else pd.MultiIndex.from_tuples(evidenceStateCombos, names=evidenceVars)
-
-
-    df: DataFrame = DataFrame(data = factor.values, index = states[0], columns = topColNames)
-    df.index.name = factor.variables[0] # the query var name
-
-    # NOTE: do not transpose because usually we are passed a discrete factor with no evidence vars,
-    # and the single-var view is nicer when  not transposing
-    return df #.transpose()
-
-
-
-
 
 def tabularDf(cpd: TabularCPD) -> DataFrame:
     '''
     Converts a pgmpy TabularCPD to pandas DataFrame for nicer viewing
     '''
     # Get names of variables (evidence vars) whose combos of states will go on top of the data frame
-    evidenceVars: List[VariableName] = list(cpd.state_names.keys())[1:]
+    evidenceVars: List[Name] = list(cpd.state_names.keys())[1:]
 
     # Get all state names mapped to each variable
     states: List[State] = list(cpd.state_names.values())
@@ -182,4 +146,42 @@ def tabularDf(cpd: TabularCPD) -> DataFrame:
     df: DataFrame = DataFrame(data = cpd.get_values(), index = states[0], columns = topColNames)
     df.index.name = cpd.variable # the query var name
 
-    return df.transpose()
+    # NOTE: if no evidence vars then do not transpose, else we do transpose
+    if evidenceVars == []:
+        return df
+
+    return df.transpose() # else if there are evidence vars then we CAN transpose.
+
+
+
+
+# TODO if no evidence then do not transpose
+
+def factorDf(factor: DiscreteFactor) -> DataFrame:
+    '''
+    Converts a pgmpy DiscreteFactor to pandas DataFrame for nicer viewing
+    '''
+    # Get names of variables (evidence vars) whose combos of states will go on top of the data frame
+    evidenceVars: List[Name] = list(factor.state_names.keys())[1:]
+
+    # Get all state names mapped to each variable
+    states: List[State] = list(factor.state_names.values())
+
+    # Create combinations of states to go on the horizontal part of the CPD dataframe
+    evidenceStateCombos: List[Tuple[State, State]] = list(itertools.product(*states[1:]))
+
+    # note: Avoiding error thrown when passing empty list of tuples to MultiIndex
+    topColNames = [''] if evidenceVars == [] else pd.MultiIndex.from_tuples(evidenceStateCombos, names=evidenceVars)
+
+
+    df: DataFrame = DataFrame(data = factor.values, index = states[0], columns = topColNames)
+    df.index.name = factor.variables[0] # the query var name
+
+    # NOTE: if no evidence vars then do not transpose, else we do transpose
+    if evidenceVars == []:
+        return df
+
+    return df.transpose() # else if there are evidence vars then we CAN transpose.
+
+
+

@@ -1,5 +1,6 @@
-
-
+d3 = {'J':{4,44}, 'A':{3,5,4}, 'D':{1,2}, 'C':{1,2,3}}
+d1 |plus| d2
+d1 |plus| d2 |plus| d3
 # %% markdown
 # ### Causal Reasoning: Exertion - Absenteeism Effect
 # %% codecell

@@ -53,21 +53,8 @@ DARK_BLUE = '#0098ff'
 LIGHT_GREEN = '#d4ffde'
 
 
-# Declaring type aliases for clarity:
-Variable = str
-Table = str
-State = str
-Grid = List[List]
-
-Color = str
-
-#Value = str
-#Desc = str
-
-#Key = int
-#Legend = Dict[Key , Value]
-OriginAndWeightInfo = Dict # has shape {'origin': 'unknown', 'weight' : FLOAT_NUMBER}
-CondProbDist = Dict
+# My type alases (for clarity)
+from src.utils.TypeAliases import *
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -83,7 +70,7 @@ def extractPath(paths, cpd: CondProbDist, callback):
 
 
 
-def dictToGrid(variable: Variable, values: Dict) -> Grid:
+def dictToGrid(variable: Name, values: Dict) -> Grid:
 
     paths = []
     def callback(array):
@@ -114,7 +101,7 @@ def dictToGrid(variable: Variable, values: Dict) -> Grid:
 
 
 
-def dictToTable(variable: Variable, values: Dict, grids):
+def dictToTable(variable: Name, values: Dict, grids):
 
     span = len(values['cpd']) + 1
     prefix = '<<FONT POINT-SIZE="7"><TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="' + str(span) +'">' + values['desc'] + '</TD></TR>'
@@ -152,8 +139,8 @@ def dictToTable(variable: Variable, values: Dict, grids):
 # that takes in the causalnex structure model.
 
 # Renders graph from given structure (with no edge weights currently, but can include these)
-def dictToGraph(structures: List[Tuple[Variable, Variable]],
-                variables: Dict[Variable, Dict],
+def dictToGraph(structures: List[Tuple[Name, Name]],
+                variables: Dict[Name, Dict],
                 nodeColor: Color = LIGHT_CORNF, edgeColor: Color = CHERRY) -> gz.Digraph:
     g = gz.Digraph('G')
 
@@ -184,7 +171,7 @@ def dictToGraph(structures: List[Tuple[Variable, Variable]],
 
 
 def dictToGraphCPD(graphNoTable: gz.Digraph,
-                   variables: Dict[Variable, Dict]) -> gz.Digraph:
+                   variables: Dict[Name, Dict]) -> gz.Digraph:
     # import random
 
     g = graphNoTable.copy() # make this just a getter, not a setter also!
@@ -217,15 +204,15 @@ def dictToGraphCPD(graphNoTable: gz.Digraph,
 # PGMPY conversions to Graphviz graph
 
 
-def pgmpyToGrid(model: BayesianModel, queryNode: Variable,
+def pgmpyToGrid(model: BayesianModel, queryNode: Name,
                 shorten: bool = True) -> Grid:
     '''
     Renders a list of lists (grid) from the pgmpy model, out of the CPD for the given query node.
     '''
     # Get the dictionary of 'var' : [states]
-    allVarStates: Dict[Variable, List[State]] = model.get_cpds(queryNode).state_names
+    allVarStates: Dict[Name, List[State]] = model.get_cpds(queryNode).state_names
 
-    condVarStates: Dict[Variable, List[State]] = dict(list(allVarStates.items())[1:])
+    condVarStates: Dict[Name, List[State]] = dict(list(allVarStates.items())[1:])
 
     # Doing product between states of the evidence (conditional) variables to get: (Dumb, Easy), (Dumb, Hard),
     # (Intelligent, Easy), (Intelligent, Hard) ...
@@ -258,16 +245,16 @@ def pgmpyToGrid(model: BayesianModel, queryNode: Variable,
 
 
 def pgmpyToTable(model: BayesianModel,
-                 queryNode: Variable,
+                 queryNode: Name,
                  grid: Grid,
-                 queryNodeLongName: Variable = None) -> Table:
+                 queryNodeLongName: Name = None) -> Table:
     '''
     Function adapted from `renderTable_fromdict that is just passed the model and constructs the hashtag table
     '''
     # Assigning the long name of the node (like queryNode = 'G' but queryNodeLongName = 'Grade')
-    queryNodeLongName: Variable = queryNode if queryNodeLongName is None else queryNodeLongName
+    queryNodeLongName: Name = queryNode if queryNodeLongName is None else queryNodeLongName
 
-    condNodes: List[Variable] = list(model.get_cpds(queryNode).state_names.keys())[1:]
+    condNodes: List[Name] = list(model.get_cpds(queryNode).state_names.keys())[1:]
     numCondNodes: int = len(condNodes)
 
     # Variable to add to the column span
@@ -337,7 +324,7 @@ def drawGraph(model: BayesianModel,
               nodeColor: Color = LIGHT_CORNF, edgeColor: Color = CHERRY) -> gz.Digraph:
 
     # Getting the edges (the .edges() results in NetworkX OutEdgeView object)
-    structures: List[Tuple[Variable, Variable]] = list(iter(model.edges()))
+    structures: List[Tuple[Name, Name]] = list(iter(model.edges()))
 
     return edgesToGraph(edges= structures,
                         nodeColor = nodeColor, edgeColor = edgeColor)
@@ -351,7 +338,7 @@ def drawGraphCPD(model: BayesianModel, shorten: bool = True) -> gz.Digraph:
     Converts a pgmpy BayesianModel into a graphviz Digraph with its CPD tables drawn next to its nodes.
     '''
     g: gz.Digraph = drawGraph(model)
-    variables: List[Variable] = list(iter(model.nodes))
+    variables: List[Name] = list(iter(model.nodes))
 
     for var in variables:
         g.attr('node', shape ='plaintext')
@@ -382,7 +369,7 @@ def drawGraphCPD(model: BayesianModel, shorten: bool = True) -> gz.Digraph:
 # ---------------------------------------------------------------------------------------------------------
 # Simple list of edges conversion to Graphviz graph
 
-def edgesToGraph(edges: List[Tuple[Variable, Variable]],
+def edgesToGraph(edges: List[Tuple[Name, Name]],
                  #structures: List[Tuple[Variable, Variable]],
                  nodeColor: Color = LIGHT_CORNF, edgeColor: Color = CHERRY) -> gz.Digraph:
 
@@ -430,10 +417,10 @@ def structToGraph(weightedGraph: StructureModel,
 
     g = gz.Digraph('G')
 
-    adjacencies: List[Tuple[Variable, Dict[Variable, OriginAndWeightInfo]]] = list(weightedGraph.adjacency())
+    adjacencies: List[Tuple[Name, Dict[Name, OriginAndWeightInfo]]] = list(weightedGraph.adjacency())
 
     for sourceVar, edgeDict in adjacencies:
-        edgeList: List[Variable, OriginAndWeightInfo] = list(edgeDict.items())
+        edgeList: List[Name, OriginAndWeightInfo] = list(edgeDict.items())
 
         for endVar, otherInfoDict in edgeList:
             g.attr('node', shape='oval') #, color='red')
@@ -476,7 +463,7 @@ def structToGraph(weightedGraph: StructureModel,
 
 
 # ------------------------------------------------------------------------------------------------------------------
-def renderValues(variable: Variable, values: Dict):
+def renderValues(variable: Name, values: Dict):
 
     paths = []
     def callback(array):
@@ -506,8 +493,8 @@ def renderValues(variable: Variable, values: Dict):
 
 
 
-def buildBayesianModel(structures: List[Tuple[Variable, Variable]],
-                       variables: Dict[Variable, Dict]):
+def buildBayesianModel(structures: List[Tuple[Name, Name]],
+                       variables: Dict[Name, Dict]):
     #try:
     #    from pgmpy.models import BayesianModel
     #    from pgmpy.factors.discrete import TabularCPD

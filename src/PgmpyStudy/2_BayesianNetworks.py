@@ -262,10 +262,10 @@ Image(filename = imagePath + 'fourConnections.png')
 # %% codecell
 from src.utils.GraphvizUtil import *
 
-causal: List[Tuple[Variable, Variable]] = [('A', 'B'), ('B', 'C')]
-evidential: List[Tuple[Variable, Variable]] = [('C', 'B'), ('B', 'A')]
-commonEvidence : List[Tuple[Variable, Variable]] = [('A', 'B'), ('C', 'B')]
-commonCause: List[Tuple[Variable, Variable]] = [('B', 'A'), ('B', 'C')]
+causal: List[Tuple[Name, Name]] = [('A', 'B'), ('B', 'C')]
+evidential: List[Tuple[Name, Name]] = [('C', 'B'), ('B', 'A')]
+commonEvidence : List[Tuple[Name, Name]] = [('A', 'B'), ('C', 'B')]
+commonCause: List[Tuple[Name, Name]] = [('B', 'A'), ('B', 'C')]
 
 causalGraph = edgesToGraph(edges= causal)
 evidentialGraph = edgesToGraph(edges= evidential)
@@ -1249,7 +1249,7 @@ str(model.local_independencies('L'))
 # From the above equation we can clearly see that the Joint Distribution over all variables is just the product of all the CPDs in the network. Hence, encoding the inependencies in the Joint Distribution in a graph structure helped us in reducing the number of parameters that we need to store.
 # %% codecell
 # Very simple, simplistic (not always right?) way to get the cpd name: just putting the second variable second
-def cpdName(model: BayesianModel, node: VariableName) -> str:
+def cpdName(model: BayesianModel, node: Name) -> str:
     variables = model.get_cpds(node).variables
     if len(variables) == 1:
         return 'P('  + variables[0] + ')'

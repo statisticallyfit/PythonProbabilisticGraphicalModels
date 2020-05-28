@@ -6,25 +6,25 @@ from src.utils.NetworkUtil import *
 
 # get observed tars that act to disable active trail nodes in causal, evidential, models (except common ev)
 def all_getObservedVars(model: BayesianModel,
-                        startVar: VariableName,
-                        endVar: VariableName) -> List[Set[VariableName]]:
-    startBackdoors: Dict[VariableName, List[Set[VariableName]]] = backdoorAdjustSets(model, startVar, notation = None)
-    endBackdoors: Dict[VariableName, List[Set[VariableName]]] = backdoorAdjustSets(model, endVar, notation = None)
+                        startVar: Name,
+                        endVar: Name) -> List[Set[Name]]:
+    startBackdoors: Dict[Name, List[Set[Name]]] = backdoorAdjustSets(model, startVar, notation = None)
+    endBackdoors: Dict[Name, List[Set[Name]]] = backdoorAdjustSets(model, endVar, notation = None)
 
 
     # Removing the None (no backdoor) variables:
-    startTuples: List[Tuple[Set[VariableName], Set[VariableName]]] = \
+    startTuples: List[Tuple[Set[Name], Set[Name]]] = \
         [( set([fromVar]), *adjustList ) if adjustList != [None] else ()
          for fromVar, adjustList in startBackdoors.items()]
 
 
-    endTuples: List[Tuple[Set[VariableName], Set[VariableName]]] = \
+    endTuples: List[Tuple[Set[Name], Set[Name]]] = \
         [( set([toVar]), *adjustList ) if adjustList != [None] else ()
          for toVar, adjustList in endBackdoors.items()]
 
     # Squashing the tuples:
     # And concatenating the results (the forward / backward backdoor searches):
-    startEndBackdoorSets: List[Set[VariableName]] = list(itertools.chain(* (startTuples + endTuples)))
+    startEndBackdoorSets: List[Set[Name]] = list(itertools.chain(* (startTuples + endTuples)))
 
     return startEndBackdoorSets
 

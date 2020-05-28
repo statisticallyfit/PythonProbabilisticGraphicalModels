@@ -28,9 +28,9 @@ sys.path
 from src.utils.GraphvizUtil import *
 
 
-structures: List[Tuple[Variable, Variable]] = [('D', 'G'), ('I', 'G'), ('G', 'L'), ('I', 'S')]
+structures: List[Tuple[Name, Name]] = [('D', 'G'), ('I', 'G'), ('G', 'L'), ('I', 'S')]
 
-variables: Dict[Variable, Dict] = {
+variables: Dict[Name, Dict] = {
     'D': {
         'desc': "Difficulty",
         'legend': {0: 'Easy', 1: 'Hard'},
