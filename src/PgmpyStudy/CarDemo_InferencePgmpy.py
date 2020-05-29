@@ -244,6 +244,7 @@ assert carModel.is_active_trail(start = Experience.var, end = Absenteeism.var, o
 assert carModel.is_active_trail(start = Experience.var, end = Absenteeism.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
 
 # Finding out which extra variable to condition on:
+# TODO OBSERVEDVARS: must fix observedvars function so that (assuming causal chain) it can identify in the graph what is the middle node between these passed 'start' and 'end' nodes and also include that middle node in the output list (along with existing backdoors)
 assert observedVars(carModel, start= Experience, end= Absenteeism) == [{Time.var, WorkCapacity.var}], "Check: all list of extra variables to condition on to nullify active trail between Experience and Absenteeism"
 
 # Check trail is nullified
@@ -313,7 +314,7 @@ print(EWA)
 assert allEqual(EWA.values, EWA_1.values, EWA_2.values, EWA_3.values), "Check: the random variables Experience and Absenteeism are independent, when intermediary node WorkCapacity is observed (while accounting for backdoors)"
 
 
-
+#Causal:  Experience ---> WorkCapacity --> Absenteeism
 backdoorStateSet: Dict[Name, Set[State]] = {WorkCapacity.var : {OBS_STATE_WORKCAPACITY}, Time.var : {OBS_STATE_TIME}}
 
 
@@ -546,13 +547,7 @@ TE_3: DiscreteFactor = elim.query(variables = [Exertion.var],
                                   evidence = backdoorStates |o| {Training.var : 'Low'})
 print(TE)
 
-# %% markdown
-# Summary of above eliminations, in one chart:
-# %% codecell
-dfTE = eliminateSlice(carModel,
-                      query = Exertion,
-                      evidence = backdoorStateSet |s| {Training.var : Training.states})
-dfTE
+
 
 # %% markdown [markdown]
 #
@@ -695,35 +690,133 @@ dfTWE = eliminateSlice(carModel, query = Exertion,
                        evidence = backdoorStateSet |s| {Training.var : Training.states})
 dfTWE
 
+# %% markdown
+# ### (2) Common Effect Reasoning: Exertion --> WorkCapacity <-- Training
+# %% codecell
+dfTWE
+# %% markdown
+# ### (4) Common Effect Reasoning: WorkCapacity --> Absenteeism <-- Time
+# $\color{red}{\text{TODO: CASE 4 is not working!}}$
+# %% codecell
+
+# 4
+
+observedVars(carModel, start = WorkCapacity, end = Time)
+
+# %% codecell
+# TODO why false?
+carModel.is_active_trail(start = WorkCapacity.var, end = Time.var, observed = [WorkCapacity.var, Absenteeism.var])
+# TODO why is this true even when there is NO observed var? Should be false when there is no middle node / backdoor observation:
+# %% codecell
+carModel.is_active_trail(start = WorkCapacity.var, end = Time.var, observed = None)
+# TODO problem with this (above) is that when we pass JUST Absenteeism (without backdoor workcapacity) then is_active_trail() yields TRUE also, but that is a false positive because we know TRUE is yielded when not observing state of Absenteeism, which should be incorrect for the common-effect model.
+
+# %% codecell
+# Common Evidence: WorkCapacity ---> Absenteeism <---- Time
+#backdoorStateSet: Dict[Name, Set[State]] = {WorkCapacity.var : {OBS_STATE_WORKCAPACITY}}
+
+# NOTE: cannot use the same variable in evidence as the one in query so even though observedVars function returns workcapacity as one of the observed vars, the below method will complain if we put it in evidence ...so cannot account for "my backdoor guesses" here.
+
+# TODO even here the same above problem is visible: when not including Absenteeism (middle node) there should be NO active trail between Time and WorkCapacity but still we see there are difference probabiliities of workcapacity states given varying levels of time so they seem dependent.
+#inf = CausalInference(carModel)
+#inf.get_all_backdoor_adjustment_sets(WorkCapacity.var, Time.var) # is empty
+
+dfTW: DataFrame = eliminateSlice(carModel, query = WorkCapacity,
+                                  evidence = {Time.var : {2, 15, 30}})
+dfTW
+
+# %% codecell
+# Here is the false positive (even if we include absenteeism the fake active trail is visible through the differing probabilities in workcapacity)
+dfTAW: DataFrame = eliminateSlice(carModel, query = WorkCapacity,
+                                  evidence = {Absenteeism.var : {'Low'}, Time.var : {2, 15, 30}})
+dfTAW
+
+
+
+
 
 # %% markdown
-# ### Common Effect Reasoning: WorkCapacity --> Absenteeism <-- Time
+# ### (5) Common Effect Reasoning: Time --> WorkCapacity <-- Exertion
+# $\color{red}{\text{TODO: CASE 5 is not working!}}$
 # %% codecell
-# 4
-# TODO left off here
 
-Time_EarlyLate = RandomVariable(var = "Time", states = {2, 30})
-
-observedVars(carModel, start= WorkCapacity, end= Time)
-#backdoorAdjustSets(model = carModel, endVar = Absenteeism.var)
-#inf = CausalInference(carModel)
-#inf.get_all_backdoor_adjustment_sets(X = WorkCapacity.var, Y = Time.var)
-carModel.is_active_trail(start = WorkCapacity.var, end = Time.var, observed = [Absenteeism.var, WorkCapacity.var, Time.var])
-# %% codecell
-df4 = eliminate(carModel, query = WorkCapacity, evidence = [Absenteeism, Experience, Time_EarlyLate])
-df4
-# %% codecell
 # 5
-observedVars(carModel, start= Time, end= Exertion)
+observedVars(carModel, start = Time, end = Exertion)
+observedVars(carModel, start = Exertion, end = Time)
+
+inf = CausalInference(carModel)
+inf.get_all_backdoor_adjustment_sets(Exertion.var, Time.var)
+inf.get_all_backdoor_adjustment_sets(Time.var, Exertion.var)
 # %% codecell
-# 6
-observedVars(carModel, start= Time, end= Experience)
+
+# TODO why is this true even when there is NO observed var? Should be false when there is no middle node / backdoor observation:
+carModel.is_active_trail(start = Exertion.var, end = Time.var, observed = None)
+
 # %% codecell
-# 7
-observedVars(carModel, start= Time, end= Training)
+# TODO because above (previous) works with observed = None, the below is false positive!
+carModel.is_active_trail(start = Exertion.var, end = Time.var, observed = [WorkCapacity.var])
+
 # %% codecell
+# TODO all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the middle node absenteeism)
+dfTX: DataFrame = eliminateSlice(carModel, query = Exertion, evidence = {Time.var : {2, 15, 30}})
+dfTX
+
+# %% codecell
+# TODO false positive here now because abvoe shows dependence not independence
+dfTAX: DataFrame = eliminateSlice(carModel, query = Exertion,
+                                  evidence = {Absenteeism.var : {'Low'}, Time.var : {2, 15, 30}})
+dfTAX
+
+# %% markdown
+# ### (6) Common Effect Reasoning: Time --> WorkCapacity <-- Experience
+# $\color{red}{\text{TODO: CASE 6 is not working!}}$
+# %% markdown
+# ### (7) Common Effect Reasoning: Time --> WorkCapacity <-- Training
+# $\color{red}{\text{TODO: CASE 7 is not working!}}$
+
+
+
+
+
+# %% markdown
+# ### (9) Common Effect Reasoning: Process ---> Absenteeism <--- Injury
+# $\color{red}{\text{TODO: CASE 9 is not working!}}$
+# %% codecell
+
 # 9
-observedVars(carModel, start= Process, end= Injury)
+observedVars(carModel, start = Process, end = Injury)
+observedVars(carModel, start = Injury, end = Process)
+
+inf = CausalInference(carModel)
+inf.get_all_backdoor_adjustment_sets(Injury.var, Process.var)
+inf.get_all_backdoor_adjustment_sets(Process.var, Injury.var)
+# %% codecell
+
+# TODO why is this true even when there is NO observed var? Should be false when there is no middle node / backdoor observation:
+carModel.is_active_trail(start = Process.var, end = Injury.var, observed = None)
+
+# %% codecell
+# TODO because above (previous) works with observed = None, the below is false positive!
+carModel.is_active_trail(start = Process.var, end = Injury.var, observed = [Absenteeism.var])
+
+# %% codecell
+# TODO all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the middle node absenteeism)
+
+# TODO left off here
+# TODO error since state not in data, jus pass states from data
+dataDict
+dfIP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Injury.var : Injury.states})
+dfIP
+
+# %% codecell
+# TODO false positive here now because abvoe shows dependence not independence
+dfTAX: DataFrame = eliminateSlice(carModel, query = Exertion,
+                                  evidence = {Absenteeism.var : {'Low'}, Time.var : {2, 15, 30}})
+dfTAX
+
+
+
+
 # %% codecell
 # 10
 observedVars(carModel, start= Tool, end= Process)

@@ -405,12 +405,8 @@ def backdoorAdjustSets(model: BayesianModel,
 def observedVars(model: BayesianModel, start: RandomVariable, end: RandomVariable) -> List[Set[RandomVariable]]:
 
 
-    startBackdoors: Dict[Name, List[Set[Name]]] = backdoorAdjustSets(model,
-                                                                     node= start,
-    notation = None)
-    endBackdoors: Dict[Name, List[Set[Name]]] = backdoorAdjustSets(model,
-                                                                   node= end,
-                                                                   notation =None)
+    startBackdoors: Dict[Name, List[Set[Name]]] = backdoorAdjustSets(model, node = start, notation = None)
+    endBackdoors: Dict[Name, List[Set[Name]]] = backdoorAdjustSets(model, node = end, notation =None)
 
     shortenedResult: List[Set[Name]] = startBackdoors[end.var] + endBackdoors[start.var]
 
@@ -429,7 +425,7 @@ def observedVars(model: BayesianModel, start: RandomVariable, end: RandomVariabl
 def mergeSubsets(varSetList: List[Set[Name]]) -> List[List[Name]]:
 
     # Step 1: create combination tuples
-    combos = list(itertools.combinations(varSetList, r = 2)); combos
+    combos = list(itertools.combinations(varSetList, r = 2))
 
 
     # STEP 2a) gathered the same key values under the same key
