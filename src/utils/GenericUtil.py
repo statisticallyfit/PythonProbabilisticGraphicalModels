@@ -82,7 +82,7 @@ curry = Infix(curry)
 # -------------------------------------------------------------------------------------------------------------------
 
 
-def mergeKeyStates(doubleTuple: Tuple[Tuple[Name, Set[State]], Tuple[Name, Set[State]]]):
+def intersectVarStates(doubleTuple: Tuple[Tuple[Name, Set[State]], Tuple[Name, Set[State]]]):
     (keyA, setA), (keyB, setB) = doubleTuple
 
     if keyA == keyB:
@@ -94,7 +94,7 @@ def mergeKeyStates(doubleTuple: Tuple[Tuple[Name, Set[State]], Tuple[Name, Set[S
 
 # Merges the tuple (tries) in sorted sorted, Returns list of the single merged tuple or list of the non-merged
 # tuples, in sorted order by key
-def mergeSortKeyStates(doubleTuple: Tuple[Tuple[Name, Set[State]], Tuple[Name, Set[State]]]):
+def intersectSortVarStates(doubleTuple: Tuple[Tuple[Name, Set[State]], Tuple[Name, Set[State]]]):
     (keyA, setA), (keyB, setB) = doubleTuple
 
     if keyA == keyB:
@@ -132,13 +132,17 @@ def intersectDictValues(xs: Dict[Name, Set[State]],
 # 11,14}}
 
 # Intersecting dict values
+# TODO alternate shorter way: use sorted(list(d1.items()) + list(d2.items())) then merge the two following items in  the list (using i from 0 --> len-1 technique)
 
-def intersectDicts(xs: Dict[Name, Set[State]],
-                   ys: Dict[Name, Set[State]]) -> Dict[Name, Set[State]]:
+def addDictsOfSetStates(d1: Dict[Name, Set[State]],
+                        d2: Dict[Name, Set[State]]) -> Dict[Name, Set[State]]:
+    '''
+    Intersects the set values of the two dicts. Returns a dict with all the keys from both dicts included,  mapped to the set intersection of the sets from the corresponding key.
+    '''
 
     # STEP 1: sort the dictionaries by KEY so that we can satisfy the assumption of categorize tuple function, that there are no repetition of keys in either dicts:
-    xsSorted = dict(sorted(xs.items()))
-    ysSorted = dict(sorted(ys.items()))
+    xsSorted = dict(sorted(d1.items()))
+    ysSorted = dict(sorted(d2.items()))
 
     # STEP 1: merge the dicts, where the length is the same
 
@@ -146,7 +150,7 @@ def intersectDicts(xs: Dict[Name, Set[State]],
     combos = list(itertools.combinations(list(xsSorted.items()) + list(ysSorted.items()), r = 2))
 
     # Merge the tuples if possible
-    mergedTuples = list(map(lambda doubleTup : mergeKeyStates(doubleTup), combos))
+    mergedTuples = list(map(lambda doubleTup : intersectVarStates(doubleTup), combos))
 
     # Take only the length = 1 lists since those contain the merged tuple, others are not merged.
     mergedStateTuples: List[Tuple[Name, Set[State]]] = dict(itertools.chain(*filter(lambda lst: len(lst) == 1, mergedTuples)))
@@ -160,9 +164,9 @@ def intersectDicts(xs: Dict[Name, Set[State]],
     # STEP 2: adding keys missing from d1 and d2
 
     # The var - state tuples that are leftover from d2, that haven't been merged
-    firstUnmerged: Dict[Name, Set[State]] = dict(filter(lambda varState : varState[0] in firstUnmergedKeys, xs.items()))
+    firstUnmerged: Dict[Name, Set[State]] = dict(filter(lambda varState : varState[0] in firstUnmergedKeys, d1.items()))
     # The var - state tuples that are leftover from d2, that haven't been merged
-    secondUnmerged: Dict[Name, Set[State]] = dict(filter(lambda varState : varState[0] in secondUnmergedKeys, ys.items()))
+    secondUnmerged: Dict[Name, Set[State]] = dict(filter(lambda varState : varState[0] in secondUnmergedKeys, d2.items()))
 
 
     mergedStateTuples.update(firstUnmerged)
@@ -174,31 +178,29 @@ def intersectDicts(xs: Dict[Name, Set[State]],
 
 
 # Now after this is declared, we use this like dict1 |plus| dict2
-plus = Infix(lambda d1,d2 : intersectDicts(d1, d2))
+# join
+s = Infix(lambda d1, d2 : addDictsOfSetStates(d1, d2))
 
 
-
-
-
-
-
-
-
+# ----------------------------------------------------------------------------------------
 
 # Adds two dicts, assuming no keys are the same (so no var names are the same
 # Used for quickly concatenating the backdoor states dict to the extra testing dict (like backdoor states of work
 #  capacity and time dict added to the training level dict in the Car demo, for part 4/ intercausaul reasoning)
+def addDictsOfOneState(d1: Dict[Name, State],
+                       d2: Dict[Name, State]) -> Dict[Name, State]:
+
+    if set(d1.keys()).intersection(set(d2.keys())):
+        raise Exception("Will not merge dicts when there are duplicate keys!")
+
+    return dict(sorted(list(d1.items()) + list(d2.items())))
+
+# plus
+o = Infix(lambda d1, d2 : addDictsOfOneState(d1, d2))
+
+
 
 # todo explore how RandomVariable (named tuple) can be converted to DICT in Python 3.8
-
-
-# TODO NOW: make a type aliases file (rename VariableName to Name) and import this wherever needed, including in this
-#  and other util files
-
-
-
-# TODO update cardemo file so that all the List[State] are now converted to Set[State]
-
 
 
 

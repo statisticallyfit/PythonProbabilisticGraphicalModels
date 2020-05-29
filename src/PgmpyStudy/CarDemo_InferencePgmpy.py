@@ -1,6 +1,6 @@
 # %% markdown [markdown]
 # # Car Bayesian Network
-# Creating bayesian network to model use cases in [https://synergo.atlassian.net/wiki/spaces/CLNTMMC/pages/1812529153/RFP+-+Extra+use+cases+-+Appendix+A](https://synergo.atlassian.net/wiki/spaces/CLNTMMC/pages/1812529153/RFP+-+Extra+use+cases+-+Appendix+A).
+# Creating bayesian network to model use cases in [httplus://synergo.atlassian.net/wiki/spaces/CLNTMMC/pages/1812529153/RFP+-+Extra+use+cases+-+Appendix+A](httplus://synergo.atlassian.net/wiki/spaces/CLNTMMC/pages/1812529153/RFP+-+Extra+use+cases+-+Appendix+A).
 
 # %% markdown [markdown]
 # Doing path-setting:
@@ -258,16 +258,20 @@ showActiveTrails(carModel, variables = [Experience, Absenteeism], observed = [Wo
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[Name, Set[State]] = {WorkCapacity.var : {OBS_STATE_WORKCAPACITY}, Time.var : {OBS_STATE_TIME}}
+backdoorStates: Dict[Name, State] = {Time.var: OBS_STATE_TIME, WorkCapacity.var : OBS_STATE_WORKCAPACITY }
 
 
-EWA: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates)
+EWA: DiscreteFactor = elim.query(variables = [Absenteeism.var],
+                                 evidence = backdoorStates)
 
-EWA_1: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'High'}})
+EWA_1: DiscreteFactor = elim.query(variables = [Absenteeism.var],
+                                   evidence = backdoorStates |o| {Experience.var : 'High'})
 
-EWA_2: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'Medium'}})
+EWA_2: DiscreteFactor = elim.query(variables = [Absenteeism.var],
+                                   evidence = backdoorStates |o| {Experience.var : 'Medium'})
 
-EWA_3: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'Low'}})
+EWA_3: DiscreteFactor = elim.query(variables = [Absenteeism.var],
+                                   evidence = backdoorStates |o| {Experience.var : 'Low'})
 
 print(EWA)
 # %% markdown
@@ -309,8 +313,12 @@ print(EWA)
 assert allEqual(EWA.values, EWA_1.values, EWA_2.values, EWA_3.values), "Check: the random variables Experience and Absenteeism are independent, when intermediary node WorkCapacity is observed (while accounting for backdoors)"
 
 
-dfEWA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = {WorkCapacity.var :['Low'], Time.var :[23], Experience.var : ['High', 'Low', 'Medium']})
 
+backdoorStateSet: Dict[Name, Set[State]] = {WorkCapacity.var : {OBS_STATE_WORKCAPACITY}, Time.var : {OBS_STATE_TIME}}
+
+
+dfEWA: DataFrame = eliminateSlice(carModel, query = Absenteeism,
+                                  evidence = backdoorStateSet |s| {Experience.var : Experience.states})
 
 dfEWA
 
@@ -343,21 +351,28 @@ showActiveTrails(carModel, variables = [Experience, Absenteeism], observed = Non
 # %% markdown [markdown]
 # **Testing Marginal Dependence:** Using Probabilities
 # %% codecell
+
+# TODO DIFFERENT plus HERE
+
 OBS_STATE_TIME: int = 23
 
 # TODO left off here: must make backdoor states type compatible with |plus| but also with elim.query() arguments
-backdoorStates: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
+backdoorStates: Dict[Name, State] = {Time.var : OBS_STATE_TIME}
 
-EA: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates)
+EA: DiscreteFactor = elim.query(variables = [Absenteeism.var],
+                                evidence = backdoorStates)
 print(EA)
 # %% codecell
-EA_1: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'High'}})
+EA_1: DiscreteFactor = elim.query(variables = [Absenteeism.var],
+                                  evidence = backdoorStates |o| {Experience.var : 'High'})
 print(EA_1)
 # %% codecell
-EA_2: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'Medium'}})
+EA_2: DiscreteFactor = elim.query(variables = [Absenteeism.var],
+                                  evidence = backdoorStates |o| {Experience.var : 'Medium'})
 print(EA_2)
 # %% codecell
-EA_3: DiscreteFactor = elim.query(variables = [Absenteeism.var], evidence = backdoorStates |plus| {Experience.var : {'Low'}})
+EA_3: DiscreteFactor = elim.query(variables = [Absenteeism.var],
+                                  evidence = backdoorStates |o| {Experience.var : 'Low'})
 print(EA_3)
 # %% markdown
 # The probabilities above are stated formulaically as follows:
@@ -396,9 +411,10 @@ assert not allEqual(EA.values, EA_1.values, EA_2.values, EA_3.values), "Check: t
 
 
 
-backdoorStates: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
+backdoorStateSet: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
 
-dfEA = eliminateSlice(carModel, query = Absenteeism, evidence = backdoorStates |plus| {Experience.var : Experience.states})
+dfEA = eliminateSlice(carModel, query = Absenteeism,
+                      evidence = backdoorStateSet |s| {Experience.var : Experience.states})
 dfEA
 
 
@@ -407,28 +423,31 @@ dfEA
 # Since the probabilities of `Absenteeism = High` are NOT the same, across all varying conditions of `Time` and `Experience`, this means that there is an active trail between `Experience` and `Absenteeism`.
 
 # %% codecell
-backdoorStates: Dict[Name, Set[State]] = {Time.var : {2, 15 , 30}}
+backdoorStateSet: Dict[Name, Set[State]] = {Time.var : {2, 15 , 30}}
 
-dfEA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = backdoorStates |plus| {Experience.var : Experience.states})
+dfEA: DataFrame = eliminateSlice(carModel, query = Absenteeism,
+                                 evidence = backdoorStateSet |s| {Experience.var : Experience.states})
 dfEA
 # %% markdown
 # ### Causal Reasoning: Exertion - Absenteeism Effect
 # Since the probabilities of `Absenteeism = High` are NOT the same, across all varying conditions of `Time` and `Exertion`, this means that there is an active trail between `Exertion` and `Absenteeism`.
 
 # %% codecell
-backdoorStates: Dict[Name, Set[State]] = {Time.var : {2, 15, 30}}
+backdoorStateSet: Dict[Name, Set[State]] = {Time.var : {2, 15, 30}}
 
-dfXA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = backdoorStates |plus| {Exertion.var : Exertion.states})
+dfXA: DataFrame = eliminateSlice(carModel, query = Absenteeism,
+                                 evidence = backdoorStateSet |s| {Exertion.var : Exertion.states})
 dfXA
 # %% markdown
 # ### Causal Reasoning: Training - Absenteeism Effect
 # Since the probabilities of `Absenteeism = High` are NOT the same, across all varying conditions of `Time` and `Training`, this means that there is an active trail between `Training` and `Absenteeism`.
 
 # %% codecell
-backdoorStates: Dict[Name, Set[State]] = {Time.var : {2, 15, 30}}
+backdoorStateSet: Dict[Name, Set[State]] = {Time.var : {2, 15, 30}}
 
 
-dfTA: DataFrame = eliminateSlice(carModel, query = Absenteeism, evidence = backdoorStates |plus| {Training.var : Training.states})
+dfTA: DataFrame = eliminateSlice(carModel, query = Absenteeism,
+                                 evidence = backdoorStateSet |s| {Training.var : Training.states})
 dfTA
 
 # %% markdown
@@ -436,11 +455,11 @@ dfTA
 # %% codecell
 
 #carModel.is_active_trail(start = [Exertion.var, Training.var, Experience.var], end = Absenteeism.var)
-backdoorStates: Dict[Name, Set[State]] = {Time.var : {2, 30}}
+backdoorStateSet: Dict[Name, Set[State]] = {Time.var : {2, 30}}
 
 dfEETA: DataFrame = eliminateSlice(carModel,
                                    query = Absenteeism,
-                                   evidence = backdoorStates |plus| {Exertion.var : Exertion.states,
+                                   evidence = backdoorStateSet |s| {Exertion.var : Exertion.states,
                                                                      Training.var : Training.states,
                                                                      Experience.var : Experience.states})
 dfEETA
@@ -511,25 +530,28 @@ showActiveTrails(carModel, variables = [Exertion, Training], observed = [WorkCap
 # OBS_STATE_WORKCAPACITY: State = 'Low' # remember, not observing the state of the middle node.
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
+# TODO DIFFERENT plus HERE
+backdoorStates: Dict[Name, State] = {Time.var : OBS_STATE_TIME}
+backdoorStateSet: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
 
 TE: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = backdoorStates)
 
-TE_1: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = backdoorStates |plus| {Training.var : {'High'}})
+TE_1: DiscreteFactor = elim.query(variables = [Exertion.var],
+                                  evidence = backdoorStates |o| {Training.var : 'High'})
 
-TE_2: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = backdoorStates |plus| {Training.var : {'Medium'}})
+TE_2: DiscreteFactor = elim.query(variables = [Exertion.var],
+                                  evidence = backdoorStates |o| {Training.var : 'Medium'})
 
-TE_3: DiscreteFactor = elim.query(variables = [Exertion.var], evidence = backdoorStates |plus| {Training.var : {'Low'}})
+TE_3: DiscreteFactor = elim.query(variables = [Exertion.var],
+                                  evidence = backdoorStates |o| {Training.var : 'Low'})
 print(TE)
 
 # %% markdown
 # Summary of above eliminations, in one chart:
 # %% codecell
-backdoorStates: Dict[Name, Set[State]] = {Time.var : {OBS_STATE_TIME}}
-
 dfTE = eliminateSlice(carModel,
                       query = Exertion,
-                      evidence = backdoorStates |plus| {Training.var : Training.states})
+                      evidence = backdoorStateSet |s| {Training.var : Training.states})
 dfTE
 
 # %% markdown [markdown]
@@ -572,7 +594,11 @@ dfTE
 assert allEqual(TE.values, TE_1.values, TE_2.values, TE_3.values), "Check: the random variables Exertion and Training are independent, when intermediary node WorkCapacity is NOT observed (while accounting for backdoors)"
 
 
+backdoorStateSet: Dict[Name, Set[State]] = {Time.var: {OBS_STATE_TIME}} # , WorkCapacity.var : {OBS_STATE_WORKCAPACITY} }
 
+dfTE = eliminateSlice(carModel, query = Exertion,
+                       evidence = backdoorStateSet |s| {Training.var : Training.states})
+dfTE
 
 
 
@@ -609,7 +635,7 @@ showActiveTrails(carModel, variables = [Exertion, Training], observed = [WorkCap
 OBS_STATE_WORKCAPACITY: State = 'Low'
 OBS_STATE_TIME: int = 23
 
-backdoorStates: Dict[Name, Set[State]] = {Time.var: {OBS_STATE_TIME}, WorkCapacity.var : {OBS_STATE_WORKCAPACITY} }
+backdoorStates: Dict[Name, State] = {Time.var: OBS_STATE_TIME, WorkCapacity.var : OBS_STATE_WORKCAPACITY }
 
 TWE: DiscreteFactor = elim.query(variables = [Exertion.var],
                                  evidence = backdoorStates)
@@ -617,15 +643,15 @@ print(TWE)
 # %% codecell
 
 TWE_1: DiscreteFactor = elim.query(variables = [Exertion.var],
-                                   evidence = backdoorStates |plus| {Training.var : {'High'}})
+                                   evidence = backdoorStates |o| {Training.var : 'High'})
 print(TWE_1)
 # %% codecell
 TWE_2: DiscreteFactor = elim.query(variables = [Exertion.var],
-                                   evidence = backdoorStates |plus| {Training.var : {'Medium'}})
+                                   evidence = backdoorStates |o| {Training.var : 'Medium'})
 print(TWE_2)
 # %% codecell
 TWE_3: DiscreteFactor = elim.query(variables = [Exertion.var],
-                                   evidence = backdoorStates |plus| {Training.var : {'Low'}})
+                                   evidence = backdoorStates |o| {Training.var : 'Low'})
 print(TWE_3)
 # %% markdown [markdown]
 #
@@ -663,11 +689,10 @@ print(TWE_3)
 assert not allEqual(TWE.values, TWE_1.values, TWE_2.values, TWE_3.values), "Check: the random variables Exertion and Training are dependent, when intermediary node WorkCapacity is observed (while accounting for backdoors)"
 
 
-
-backdoorStates: Dict[Name, Set[State]] = {Time.var: {OBS_STATE_TIME}, WorkCapacity.var : {OBS_STATE_WORKCAPACITY}}
+backdoorStateSet: Dict[Name, Set[State]] = {Time.var: {OBS_STATE_TIME}, WorkCapacity.var : {OBS_STATE_WORKCAPACITY} }
 
 dfTWE = eliminateSlice(carModel, query = Exertion,
-                       evidence = backdoorStates |plus| {Training.var : Training.states})
+                       evidence = backdoorStateSet |s| {Training.var : Training.states})
 dfTWE
 
 
