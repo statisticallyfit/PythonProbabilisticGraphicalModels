@@ -21,8 +21,6 @@ import pandas as pd
 from pandas.core.frame import DataFrame
 
 
-
-
 # %% codecell
 # TODO: create "getallcausalchainswithinmodel" function , where we traverse each path and get all three-way causal chains
 # TODO do the same for common parent and common effect models

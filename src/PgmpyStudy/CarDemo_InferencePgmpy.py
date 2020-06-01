@@ -123,7 +123,7 @@ Experience = RandomVariable(var ="Experience", states = {'Low', 'Medium', 'High'
 #                                                              'WorkCapacity-03'])
 WorkCapacity = RandomVariable(var = "WorkCapacity", states = {'Low', 'Medium', 'High'})
 
-dataDict = {Time.var : Time.states,
+varDict = {Time.var : Time.states,
             Training.var : Training.states,
             Exertion.var : Exertion.states,
             Experience.var : Experience.states,
@@ -145,7 +145,9 @@ usecaseData[Time.var] = usecaseData[Time.var].astype(int)
 data = usecaseData
 # TODO: Option to later concat with white noise data (like in CarDemo Manual from CausalnexStudy)
 data
-
+# %% codecell
+dataDict: Dict[Name, List[State]] = dict([(var, list(np.unique(data[var]))) for var in data.columns])
+dataDict
 
 # %% markdown [markdown]
 # ## Step 2: Create Network Structure
@@ -792,34 +794,73 @@ inf.get_all_backdoor_adjustment_sets(Injury.var, Process.var)
 inf.get_all_backdoor_adjustment_sets(Process.var, Injury.var)
 # %% codecell
 
-# TODO why is this true even when there is NO observed var? Should be false when there is no middle node / backdoor observation:
+# todo why is this true even when there is NO observed var? Should be false when there is no middle node / backdoor
+# observation:
 carModel.is_active_trail(start = Process.var, end = Injury.var, observed = None)
 
 # %% codecell
-# TODO because above (previous) works with observed = None, the below is false positive!
+# todo because above (previous) works with observed = None, the below is false positive!
 carModel.is_active_trail(start = Process.var, end = Injury.var, observed = [Absenteeism.var])
 
 # %% codecell
-# TODO all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the middle node absenteeism)
+# todo all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the
+# middle node absenteeism)
 
-# TODO left off here
-# TODO error since state not in data, jus pass states from data
-dataDict
-dfIP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Injury.var : Injury.states})
+# NOTE: using data dict here because not all Injury.states are included in the data file (so passing Injury.states here instead of the dataDict[Injury.var] will give error at `Electrical-Burn`)
+dfIP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Injury.var : dataDict[Injury.var]})
 dfIP
 
 # %% codecell
-# TODO false positive here now because abvoe shows dependence not independence
-dfTAX: DataFrame = eliminateSlice(carModel, query = Exertion,
-                                  evidence = {Absenteeism.var : {'Low'}, Time.var : {2, 15, 30}})
-dfTAX
+dfIAP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Absenteeism.var : {'Low'},
+                                                                         Injury.var : dataDict[Injury.var]})
+dfIAP
 
 
 
+
+
+
+# %% markdown
+# ### (10) Common Effect Reasoning: Process ---> Absenteeism <--- Injury
+# $\color{red}{\text{TODO: CASE 9 is not working!}}$
+# %% codecell
+
+# 9
+observedVars(carModel, start = Tool, end = Process)
+observedVars(carModel, start = Process, end = Tool)
+
+inf = CausalInference(carModel)
+inf.get_all_backdoor_adjustment_sets(Tool.var, Process.var)
+inf.get_all_backdoor_adjustment_sets(Process.var, Tool.var)
+# %% codecell
+
+# todo why is this true even when there is NO observed var? Should be false when there is no middle node / backdoor
+# observation:
+carModel.is_active_trail(start = Process.var, end = Tool.var, observed = None)
 
 # %% codecell
-# 10
-observedVars(carModel, start= Tool, end= Process)
+# todo because above (previous) works with observed = None, the below is false positive!
+carModel.is_active_trail(start = Process.var, end = Tool.var, observed = [Injury.var, Process.var, Tool.var])
+carModel.is_active_trail(start = Process.var, end = Tool.var, observed = [Injury.var, Process.var])
+carModel.is_active_trail(start = Process.var, end = Tool.var, observed = [Injury.var, Tool.var])
+
+# %% codecell
+# todo all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the
+# middle node absenteeism)
+
+# NOTE: using data dict here because not all Injury.states are included in the data file (so passing Injury.states here instead of the dataDict[Injury.var] will give error at `Electrical-Burn`)
+dfIP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Injury.var : dataDict[Injury.var]})
+dfIP
+
+# %% codecell
+dfIAP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Absenteeism.var : {'Low'},
+                                                                         Injury.var : dataDict[Injury.var]})
+dfIAP
+
+
+
+
+
 # %% codecell
 # 13
 observedVars(carModel, start= WorkCapacity, end= Injury)

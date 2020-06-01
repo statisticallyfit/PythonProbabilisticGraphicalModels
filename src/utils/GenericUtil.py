@@ -82,6 +82,17 @@ curry = Infix(curry)
 # -------------------------------------------------------------------------------------------------------------------
 
 
+def unionVarStates(doubleTuple: Tuple[Tuple[Name, Set[State]], Tuple[Name, Set[State]]]):
+    (keyA, setA), (keyB, setB) = doubleTuple
+
+    if keyA == keyB:
+        return [ (keyA, setA.union(setB)) ] # single-element tuple
+    else:
+        return list(doubleTuple) # two-element tuple
+
+
+
+
 def intersectVarStates(doubleTuple: Tuple[Tuple[Name, Set[State]], Tuple[Name, Set[State]]]):
     (keyA, setA), (keyB, setB) = doubleTuple
 
@@ -103,24 +114,6 @@ def intersectSortVarStates(doubleTuple: Tuple[Tuple[Name, Set[State]], Tuple[Nam
         return [(keyA, setA), (keyB, setB)]
     else: #keyA > keyB:
         return [(keyB, setB), (keyA, setA)]
-
-
-
-# TODO check if this actually works, as opposed to function below
-'''
-def intersectDictValues(xs: Dict[Name, Set[State]],
-                        ys: Dict[Name, Set[State]]) -> Dict[Name, Set[State]]:
-
-    # First sort the dictionaries by KEY so that we can satisfy the assumption of categorize tuple function, that there are no repetition of keys in either dicts:
-    xsSorted = dict(sorted(xs.items()))
-    ysSorted = dict(sorted(ys.items()))
-
-    # merge the tuple values using intersection, else keep the set if either key is above or below the other
-    listOfTupleList = map(lambda aTupBTup : mergeSortKeyStates(aTupBTup), zip(xsSorted.items(), ysSorted.items()))
-
-    return dict(itertools.chain(*listOfTupleList)) # using `chain` to flatten the list of lists
-'''
-
 
 
 # ------------------------------------------------------------------------------------------------------------------------------

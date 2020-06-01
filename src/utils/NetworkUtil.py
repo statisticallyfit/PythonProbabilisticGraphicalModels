@@ -336,9 +336,9 @@ PAIR = "PAIR"
 
 
 # Gets all backdoor adjustment sets between the query var and all other nodes in the graph.
-def backdoorAdjustSets(model: BayesianModel,
-                       node: RandomVariable,
-                       notation: str = ARROW) -> Dict[Name, List[Set[Name]]]:
+def backdoorsTo(model: BayesianModel,
+                node: RandomVariable,
+                notation: str = ARROW) -> Dict[Name, List[Set[Name]]]:
 
     inference: CausalInference = CausalInference(model)
 
@@ -405,8 +405,8 @@ def backdoorAdjustSets(model: BayesianModel,
 def observedVars(model: BayesianModel, start: RandomVariable, end: RandomVariable) -> List[Set[RandomVariable]]:
 
 
-    startBackdoors: Dict[Name, List[Set[Name]]] = backdoorAdjustSets(model, node = start, notation = None)
-    endBackdoors: Dict[Name, List[Set[Name]]] = backdoorAdjustSets(model, node = end, notation =None)
+    startBackdoors: Dict[Name, List[Set[Name]]] = backdoorsTo(model, node = start, notation = None)
+    endBackdoors: Dict[Name, List[Set[Name]]] = backdoorsTo(model, node = end, notation =None)
 
     shortenedResult: List[Set[Name]] = startBackdoors[end.var] + endBackdoors[start.var]
 
