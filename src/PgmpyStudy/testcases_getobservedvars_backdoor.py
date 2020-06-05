@@ -40,6 +40,7 @@ from pgmpy.independencies import Independencies
 from pgmpy.independencies.Independencies import IndependenceAssertion
 
 
+import operator
 from operator import mul
 from functools import reduce
 
@@ -189,34 +190,6 @@ carModel.fit(data, estimator = BayesianEstimator,
 
 
 
-
-# %% codecell
-
-# get observed tars that act to disable active trail nodes in causal, evidential, models (except common ev)
-def all_getObservedVars(model: BayesianModel,
-                        startVar: Name,
-                        endVar: Name) -> List[Set[Name]]:
-    startBackdoors: Dict[Name, List[Set[Name]]] = backdoorsTo(model, startVar, notation = None)
-    endBackdoors: Dict[Name, List[Set[Name]]] = backdoorsTo(model, endVar, notation = None)
-
-
-    # Removing the None (no backdoor) variables:
-    startTuples: List[Tuple[Set[Name], Set[Name]]] = \
-        [( set([fromVar]), *adjustList ) if adjustList != [None] else ()
-         for fromVar, adjustList in startBackdoors.items()]
-
-
-    endTuples: List[Tuple[Set[Name], Set[Name]]] = \
-        [( set([toVar]), *adjustList ) if adjustList != [None] else ()
-         for toVar, adjustList in endBackdoors.items()]
-
-    # Squashing the tuples:
-    # And concatenating the results (the forward / backward backdoor searches):
-    startEndBackdoorSets: List[Set[Name]] = list(itertools.chain(* (startTuples + endTuples)))
-
-    return startEndBackdoorSets
-
-
 # %% codecell
 
 mod:BayesianModel = BayesianModel([
@@ -264,64 +237,88 @@ starts[Y.var] # Y ---> X
 ends[X.var] # X ---> Y
 
 res = starts[Y.var] + ends[X.var]; res
-
+# %% codecell
 mergeSubsets(res)
 
-
+# %% codecell
 mergeSubsets([{Process.var}, {Tool.var}])
 
 
 # %% codecell
 # Going to fix the mergeSubsets function
 #res = res + [{'Z','X','M'}, {'B', 'H'}]
-res
-keyNames = [f"S_{i}" for i in range(0, len(res))]
-d = dict(zip(keyNames, res)); d
-
-# Create combinations of tuples of the two dicts:
-combos = list(itertools.combinations(d.items(), r = 2)); combos
 
 
+def mergeSubsets(varSetList: List[Set[Name]]) -> List[Set[Name]]:
 
-# Merge the tuples if possible
-mergedPairs: List[List[Set[Name]]] = list(map(lambda doubleTup : unionVarStates(doubleTup), combos)); mergedPairs
+    # Step 1: Create combinations of tuples of the two dicts:
+    combos: List[Tuple[Set[Name], Set[Name]]] = list(itertools.combinations(varSetList, r = 2))
 
-merged: List[Set[Name]] = list(itertools.chain(*filter(lambda lst: len(lst) == 1, mergedPairs))); merged
+    # Step 2: Merge subsets
+    mergedPairs: List[List[Set[Name]]] = list(map(lambda tup : [tup[0].union(tup[1])] if isOverlap(tup[0], tup[1]) else
+    list(tup), combos))
 
-# Take only the length = 1 lists since those contain the merged tuple, others are not merged.
-mergedStateTuples: List[Tuple[Name, Set[State]]] = dict(itertools.chain(*filter(lambda lst: len(lst) == 1, mergedTuples)))
-
-
-# Keys to add from first dict: (from tuples that haveb't been merged)
-firstUnmergedKeys = set(mergedStateTuples.keys()).symmetric_difference(set(xsSorted.keys()))
-secondUnmergedKeys = set(mergedStateTuples.keys()).symmetric_difference(set(ysSorted.keys()))
+    # If the item in the list was merged then its length is necessarily 1 so get the length-1 lists and flatten lists
+    merged: List[Set[Name]] = list(itertools.chain(*filter(lambda lst: len(lst) == 1, mergedPairs)))
 
 
-# STEP 2: adding keys missing from d1 and d2
+    # Step 3: Get items that weren't merged:
 
-# The var - state tuples that are leftover from d2, that haven't been merged
-firstUnmerged: Dict[Name, Set[State]] = dict(filter(lambda varState : varState[0] in firstUnmergedKeys, d1.items()))
+    # Convert inner types from SET ---> TUPLE because need to do symmetric difference of inner types later and sets aren't hashable while tuples are hashable.
+    mergedSetOfTuples: Set[Tuple[Name]] = set(map(lambda theSet: tuple(sorted(theSet)), merged))
+    resSetOfTuples: Set[Tuple[Name]] = set(map(lambda theSet: tuple(sorted(theSet)), varSetList))
 
+    # Getting the items not merged
+    diffs: Set[Tuple[Name]] = mergedSetOfTuples.symmetric_difference(resSetOfTuples)
 
-# %% codecell
-
-# Create combinations of tuples of the two dicts:
-combos = list(itertools.combinations(res, r = 2)); combos
-mergedPairs: List[List[Set[Name]]] = list(map(lambda tup : [tup[0].union(tup[1])] if isOverlap(tup[0], tup[1]) else list(tup), combos)); mergedPairs
-
-merged: List[Set[Name]] = list(itertools.chain(*filter(lambda lst: len(lst) == 1, mergedPairs))); merged
-
-# Convert inner types from SET ---> TUPLE because need to do symmetric difference of inner types later and sets aren't hashable while tuples are hashable.
-mergedSetOfTuples: Set[Tuple] = set(map(lambda theSet: tuple(sorted(theSet)), merged)); mergedSetOfTuples
-
-# TODO : left off here trying to merge subsets using zip to get the consecutive sorted pairs
-resSetOfTuples: Set[Tuple] = set(map(lambda theSet: tuple(sorted(theSet)), res)); resSetOfTuples
+    # If for any tuple in the DIFF set we have that the tuple is overlapping any tuple in the merged set, then we know this diff-set tuple has been merged and its union result is already in the merged set, so mark True. Else mark False so that we can keep that one and return it. Or filter.
+    diffMergedPairs: List[Tuple[Tuple[Name], Tuple[Name]]] = list(itertools.product(diffs, mergedSetOfTuples))
 
 
-sorted(resSetOfTuples)[1:]
-mergedSetOfTuples.symmetric_difference(resSetOfTuples)
-# NOW WHAT?
-list(zip(sorted(resSetOfTuples), sorted(resSetOfTuples)[1:]))
+    def markState(diffMergeTuple: Tuple[Tuple, Tuple]) -> Tuple[Name, bool]:
+        diff, merged = diffMergeTuple
+        diffSet, mergedSet = set(diff), set(merged)
+
+        if isOverlap(diffSet, mergedSet):
+            return (diff, True)
+        else:
+            return (diff, False)
+
+
+    # Marking the state with true or false
+    boolPairs: List[Tuple[Tuple[Name], bool]] = list(map(lambda diffMergeTup: markState(diffMergeTup), diffMergedPairs))
+
+    # Chunking the bool pairs by first element
+    chunks: List[List[Tuple[Tuple[Name], bool]]] = [list(group) for key, group in itertools.groupby(boolPairs, operator.itemgetter(0))]
+
+
+    # If the bool value is False, for all the items in the current inner list (chunk) then return the first item of the tuple in that list (the first item of the tuple is the same for all tuples in the chunk)
+
+    def anySecondTrue(listOfTuples: List[Tuple[Tuple[Name], bool]]) -> bool:
+        ''' If any tuple in the given list has True in its second location, then return True else False'''
+        return any(map(lambda tup: tup[1],  listOfTuples))
+
+
+    unmerged: List[Tuple[Name]] = list(map(lambda lstOfTups:  lstOfTups[0][0]  if not anySecondTrue(lstOfTups) else
+    None, chunks))
+
+    # Removing the None value, just keep the tuples
+    unmerged: List[Tuple[Name]] = list(filter(lambda thing: thing != None, unmerged))
+    # Changing the type to match the merged list type
+    unmerged: List[Set[Name]] = list(map(lambda tup: set(sorted(tup)), unmerged))
+
+
+    # Step 4: final result is the concatenation: set that were merged included in same list as sets that could
+    # not be merged (that didn't have overlaps with any other set in the original varSetList)
+    return merged + unmerged
+
+
+
+mergeSubsets(res)
+
+
+
+
 # %% codecell
 
 mod2.is_active_trail(start = "X", end = "Y", observed = None)
