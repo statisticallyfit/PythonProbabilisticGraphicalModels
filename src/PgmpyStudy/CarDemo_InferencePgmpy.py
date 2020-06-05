@@ -52,6 +52,10 @@ from functools import reduce
 import itertools
 import collections
 
+
+
+from src.utils.TypeAliases import *
+
 from src.utils.GraphvizUtil import *
 from src.utils.NetworkUtil import *
 from src.utils.DataUtil import *
@@ -60,7 +64,6 @@ from src.utils.GenericUtil import *
 from typing import *
 
 # My type alias for clarity
-from src.utils.TypeAliases import *
 
 import pandas as pd
 from pandas.core.frame import DataFrame
@@ -247,6 +250,7 @@ assert carModel.is_active_trail(start = Experience.var, end = Absenteeism.var, o
 
 # Finding out which extra variable to condition on:
 # TODO OBSERVEDVARS: must fix observedvars function so that (assuming causal chain) it can identify in the graph what is the middle node between these passed 'start' and 'end' nodes and also include that middle node in the output list (along with existing backdoors)
+observedVars(carModel, start= Experience, end= Absenteeism)
 assert observedVars(carModel, start= Experience, end= Absenteeism) == [{Time.var, WorkCapacity.var}], "Check: all list of extra variables to condition on to nullify active trail between Experience and Absenteeism"
 
 # Check trail is nullified
@@ -516,7 +520,11 @@ assert carModel.is_active_trail(start = Exertion.var, end = Training.var, observ
 
 assert carModel.is_active_trail(start = Exertion.var, end = Training.var, observed = [WorkCapacity.var]), "Check: still need to condition on extra variable for this not to be an active trail"
 
+
+# %% codecell
 # Finding out which extra variable to condition on: this is the backdoor
+# TODO problem here returning Time Time twice!
+observedVars(carModel, start= Exertion, end= Training)
 assert observedVars(carModel, start= Exertion, end= Training) == [{'Time'}], "Check: all list of extra variables (backdoors) to condition on to ACTIVATE active trail between Exertion and Training"
 
 
@@ -821,7 +829,7 @@ dfIAP
 
 
 # %% markdown
-# ### (10) Common Effect Reasoning: Process ---> Absenteeism <--- Injury
+# ### (10) Common Effect Reasoning: Tool ---> Injury <--- Process
 # $\color{red}{\text{TODO: CASE 9 is not working!}}$
 # %% codecell
 
@@ -834,15 +842,20 @@ inf.get_all_backdoor_adjustment_sets(Tool.var, Process.var)
 inf.get_all_backdoor_adjustment_sets(Process.var, Tool.var)
 # %% codecell
 
-# todo why is this true even when there is NO observed var? Should be false when there is no middle node / backdoor
-# observation:
-carModel.is_active_trail(start = Process.var, end = Tool.var, observed = None)
+# This is the base case, accounting for back doors but NOT for the middle node.
+carModel.is_active_trail(start = Process.var, end = Tool.var, observed = [Tool.var, Process.var])
 
 # %% codecell
-# todo because above (previous) works with observed = None, the below is false positive!
+# TODO when including the middle node the pathway should be ACTIVATED, not still False...
 carModel.is_active_trail(start = Process.var, end = Tool.var, observed = [Injury.var, Process.var, Tool.var])
 carModel.is_active_trail(start = Process.var, end = Tool.var, observed = [Injury.var, Process.var])
-carModel.is_active_trail(start = Process.var, end = Tool.var, observed = [Injury.var, Tool.var])
+
+# TODO: is this interpretation of what is happening correct? So no backdoors, just middle node, activates the trail.
+carModel.is_active_trail(start = Process.var, end = Tool.var, observed = [Injury.var])
+# PROBLEM: still false positive because there is active trial even when there is NONE observed
+carModel.is_active_trail(start = Process.var, end = Tool.var, observed = None)
+
+
 
 # %% codecell
 # todo all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the

@@ -11,6 +11,7 @@ from pgmpy.independencies import Independencies
 from pgmpy.independencies.Independencies import IndependenceAssertion
 from pgmpy.inference.CausalInference import CausalInference
 
+import operator
 from operator import mul
 from functools import reduce
 
@@ -401,9 +402,21 @@ def backdoorsTo(model: BayesianModel,
 # Uses backdoor adjustment sets to find potential observed variables that can nullify active trail nodes (for first
 # three models) and create active trail nodes (for common ev model)
 
-
+# TODO: return named tuple instead that has two fields: AllBackdoors = the current argument right now, and MiddleNode
+#  = the node that is in the middle of the start, end (also must pass the type of model to know what kind of middle
+#  node to get)
 def observedVars(model: BayesianModel, start: RandomVariable, end: RandomVariable) -> List[Set[RandomVariable]]:
+    '''
+    Returns list of sets containing random variables.
 
+    For each set, all the Random Variables in that set must be included in the observed vars for the active trail to
+    be nullified (for first 3 models) and activated (for common evidence model).
+
+    Can use EITHER of the sets in the list to do this.
+
+    KEY TIP: there is an "OR" relation BETWEEN sets to use, and there is an "AND" relation between Random
+    Variables to use, WITHIN each set.
+    '''
 
     startBackdoors: Dict[Name, List[Set[Name]]] = backdoorsTo(model, node = start, notation = None)
     endBackdoors: Dict[Name, List[Set[Name]]] = backdoorsTo(model, node = end, notation =None)
@@ -422,61 +435,79 @@ def observedVars(model: BayesianModel, start: RandomVariable, end: RandomVariabl
 
 # Helper functions below for observedVars function:
 
-def mergeSubsets(varSetList: List[Set[Name]]) -> List[List[Name]]:
+def mergeSubsets(varSetList: List[Set[Name]]) -> List[Set[Name]]:
 
-    # Step 1: create combination tuples
-    combos = list(itertools.combinations(varSetList, r = 2))
+    # Step 0: first check if all elements in list are distinct. If they are then exit this function, there is nothing
+    # to do, and passing this distinct list through the function will return empty list:
+    distinct = np.unique(varSetList)
 
+    if (len(distinct) == len(varSetList) and (varSetList == distinct).all()):
+        return varSetList
 
-    # STEP 2a) gathered the same key values under the same key
-    gather = dict()
-    #counter = 0
-    #('A','B') in {('A','B'):[1,2,3]}
-    for i in range(0, len(combos)-1):
-        curKey, curValue = combos[i]
-        nextKey, nextValue = combos[i+1]
+    # Step 1: Create combinations of tuples of the two dicts:
+    combos: List[Tuple[Set[Name], Set[Name]]] = list(itertools.combinations(varSetList, r = 2))
 
-        curKey: Tuple[Name] = tuple(curKey) # so that it becomes hashable to allow search in the dict
+    # Step 2: Merge subsets
+    mergedPairs: List[List[Set[Name]]] = list(map(lambda tup : [tup[0].union(tup[1])] if isOverlap(tup[0], tup[1]) else
+    list(tup), combos))
 
-        # Replacing the value or adding to it at the current key, leaving next key for next time if different.
-        valueAdd: List[Set[Name]] = [curValue, nextValue] if curKey == nextKey else [curValue]
-        gather[curKey] = valueAdd if curKey not in gather.keys() else gather[curKey] + valueAdd
-
-    # Now do the last value:
-    curKey, curValue = combos[len(combos)-1]
-    curKey = tuple(curKey) # make hashable
-    gather[curKey] = [curValue]
-
-    # STEP 2b) For each key : list pair in the dict, ...flag if have merged with the value: IF NOT MERGED ANY: gather just the key ('A') ELSE IF have merged at least once, then gather just the merged results
-    merged = []
-
-    for sourceTuple, sets in gather.items():
-
-        sourceSet: Set[Name] = set(sourceTuple)
-
-        for valueSet in sets:
-
-            if isOverlap(sourceSet, valueSet):
-
-                merged.append(tuple( sourceSet.union(valueSet) ))
+    # If the item in the list was merged then its length is necessarily 1 so get the length-1 lists and flatten lists
+    merged: List[Set[Name]] = list(itertools.chain(*filter(lambda lst: len(lst) == 1, mergedPairs)))
 
 
-        if not haveMergedInPast(sourceSet, merged):
-            merged.append(sourceTuple) # adding as tuple to be able to remove duplicate easily later
+    # Step 3: Get items that weren't merged:
 
-    # Clean up types in the merged result so it is list of sets
-    return list(map(lambda tup: set(tup), set(merged)))
+    # Convert inner types from SET ---> TUPLE because need to do symmetric difference of inner types later and sets aren't hashable while tuples are hashable.
+    mergedSetOfTuples: Set[Tuple[Name]] = set(map(lambda theSet: tuple(sorted(theSet)), merged))
+    resSetOfTuples: Set[Tuple[Name]] = set(map(lambda theSet: tuple(sorted(theSet)), varSetList))
+
+    # Getting the items not merged
+    diffs: Set[Tuple[Name]] = mergedSetOfTuples.symmetric_difference(resSetOfTuples)
+
+    # If for any tuple in the DIFF set we have that the tuple is overlapping any tuple in the merged set, then we know this diff-set tuple has been merged and its union result is already in the merged set, so mark True. Else mark False so that we can keep that one and return it. Or filter.
+    diffMergedPairs: List[Tuple[Tuple[Name], Tuple[Name]]] = list(itertools.product(diffs, mergedSetOfTuples))
+
+
+    def markState(diffMergeTuple: Tuple[Tuple, Tuple]) -> Tuple[Name, bool]:
+        diff, merged = diffMergeTuple
+        diffSet, mergedSet = set(diff), set(merged)
+
+        if isOverlap(diffSet, mergedSet):
+            return (diff, True)
+        else:
+            return (diff, False)
+
+
+    # Marking the state with true or false
+    boolPairs: List[Tuple[Tuple[Name], bool]] = list(map(lambda diffMergeTup: markState(diffMergeTup), diffMergedPairs))
+
+    # Chunking the bool pairs by first element
+    chunks: List[List[Tuple[Tuple[Name], bool]]] = [list(group) for key, group in itertools.groupby(boolPairs, operator.itemgetter(0))]
+
+
+    # If the bool value is False, for all the items in the current inner list (chunk) then return the first item of the tuple in that list (the first item of the tuple is the same for all tuples in the chunk)
+
+    def anySecondTrue(listOfTuples: List[Tuple[Tuple[Name], bool]]) -> bool:
+        ''' If any tuple in the given list has True in its second location, then return True else False'''
+        return any(map(lambda tup: tup[1],  listOfTuples))
+
+
+    unmerged: List[Tuple[Name]] = list(map(lambda lstOfTups:  lstOfTups[0][0]  if not anySecondTrue(lstOfTups) else
+    None, chunks))
+
+    # Removing the None value, just keep the tuples
+    unmerged: List[Tuple[Name]] = list(filter(lambda thing: thing != None, unmerged))
+    # Changing the type to match the merged list type
+    unmerged: List[Set[Name]] = list(map(lambda tup: set(sorted(tup)), unmerged))
+
+
+    # Step 4: final result is the concatenation: set that were merged included in same list as sets that could
+    # not be merged (that didn't have overlaps with any other set in the original varSetList)
+    return merged + unmerged
 
 
 
-# if the result of the filter is empty then we have not merged that in the past, else if it is not empty then that
-# means we merged the sourceset in the past.
-def haveMergedInPast(sourceSet: Set[Name], merged: List) -> bool:
-    zipSourceMerged: List[Tuple[Set[Name], Set[Name]]] = list(zip([sourceSet] * len(merged), merged))
 
-    pastMerges: List[Tuple[Set[Name], Set[Name]]] = list(filter(lambda tup : isOverlap(tup[0], tup[1]),
-                                                                zipSourceMerged))
-    return len(pastMerges) != 0
 
 
 # Checks if either set is the subset of the other
@@ -499,8 +530,30 @@ mod2:BayesianModel = BayesianModel([
     ('E', 'Y')
 ])
 
-vals = getPotentialObservedVars(mod2, "X", "Y"); vals
-assert mergeSubsets(vals) == [{'D', 'E', 'F'}, {'C', 'D', 'F'}, {'A', 'D', 'F'}, {'B', 'D', 'F'}]
+vals = [{'A', 'D', 'F'},
+ {'B', 'D', 'F'},
+ {'C', 'D', 'F'},
+ {'D', 'E', 'F'},
+ {'B', 'D'},
+ {'A', 'D'},
+ {'C', 'D'},
+ {'D', 'E'},
+ {'M', 'X', 'Z'},
+ {'B', 'H'},
+ {'M', 'X', 'Z'},
+ {'B', 'H'}]
+
+assert mergeSubsets(vals) == [{'A', 'D', 'F'},
+ {'B', 'D', 'F'},
+ {'C', 'D', 'F'},
+ {'D', 'E', 'F'},
+ {'M', 'X', 'Z'},
+ {'B', 'H'}]
+
+
+
+assert mergeSubsets([{Process.var}, {Tool.var}]) == [{'Process'}, {'Tool'}]
+
 
 '''
 

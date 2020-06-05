@@ -40,6 +40,7 @@ from pgmpy.independencies import Independencies
 from pgmpy.independencies.Independencies import IndependenceAssertion
 
 
+
 from operator import mul
 from functools import reduce
 
@@ -191,3 +192,10 @@ carModel.fit(data, estimator = BayesianEstimator,
 
 observedVars(carModel, start = Tool, end = Process)
 observedVars(carModel, start = Process, end = Tool)
+
+# %% codecell
+
+# Returning time twice, find out why not merging well
+tt = observedVars(carModel, start= Exertion, end= Training); tt
+
+mergeSubsets(tt)
