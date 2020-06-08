@@ -713,11 +713,11 @@ dfTWE = eliminateSlice(carModel, query = Exertion,
 dfTWE
 
 # %% markdown [markdown]
-# ### (2) Common Effect Reasoning: $\text{Exertion} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Training}$
+# ### (2) Common Effect Reasoning: Exertion $\longrightarrow$ WorkCapacity $\longleftarrow$ Training
 # %% codecell
 dfTWE
 # %% markdown [markdown]
-# ### (4) Common Effect Reasoning: $\text{WorkCapacity} \longrightarrow  \text{Absenteeism} \longleftarrow \text{Time}$
+# ### (4) Common Effect Reasoning: WorkCapacity $\longrightarrow$ Absenteeism $\longleftarrow$ Time
 # $\color{red}{\text{TODO: CASE 4 is not working!}}$
 # %% codecell
 
@@ -760,7 +760,7 @@ dfTAW
 
 
 # %% markdown [markdown]
-# ### (5) Common Effect Reasoning: $\text{Time} \longrightarrow  \text{WorkCapacity} \longleftarrow \text{Exertion}$
+# ### (5) Common Effect Reasoning: Time $\longrightarrow$ WorkCapacity $\longleftarrow$ Exertion
 # $\color{red}{\text{TODO: CASE 5 is not working!}}$
 # %% codecell
 
@@ -792,10 +792,10 @@ dfTAX: DataFrame = eliminateSlice(carModel, query = Exertion,
 dfTAX
 
 # %% markdown [markdown]
-# ### (6) Common Effect Reasoning: $\text{Time} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Experience}$
+# ### (6) Common Effect Reasoning: Time $\longrightarrow$ WorkCapacity $\longleftarrow$ Experience
 # $\color{red}{\text{TODO: CASE 6 is not working!}}$
 # %% markdown [markdown]
-# ### (7) Common Effect Reasoning: $\text{Time} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Training}$
+# ### (7) Common Effect Reasoning: Time $\longrightarrow$ WorkCapacity $\longleftarrow$ Training
 # $\color{red}{\text{TODO: CASE 7 is not working!}}$
 
 
@@ -803,7 +803,7 @@ dfTAX
 
 
 # %% markdown [markdown]
-# ### (9) Common Effect Reasoning: $\text{Process} \longrightarrow \text{Absenteeism} \longleftarrow \text{Injury}$
+# ### (9) Common Effect Reasoning: Process $\longrightarrow$ Absenteeism $\longleftarrow$ Injury
 # $\color{red}{\text{TODO: CASE 9 is not working!}}$
 # %% codecell
 
@@ -849,8 +849,8 @@ dfIAP
 
 
 # %% markdown [markdown]
-# ### (10) Common Effect Reasoning: $\text{Tool} \longrightarrow \text{Injury} \longleftarrow \text{Process}$
-# $\color{red}{\text{TODO: CASE 9 is not working!}}$
+# ### (10) Common Effect Reasoning: Tool $\longrightarrow$ Injury $\longleftarrow$ Process
+# $\color{red}{\text{TODO: CASE 10 is not working!}}$
 # %% codecell
 
 # 10
@@ -891,7 +891,7 @@ dfTIP
 
 
 # %% markdown [markdown]
-# ### (13) Common Effect Reasoning: $\text{WorkCapacity} \longrightarrow \text{Absenteeism} \longleftarrow \text{Injury}$
+# ### (13) Common Effect Reasoning: WorkCapacity $\longrightarrow$ Absenteeism $\longleftarrow$ Injury
 # $\color{red}{\text{TODO: CASE 13 is not working!}}$
 # %% codecell
 
@@ -942,9 +942,9 @@ dfIAW
 
 
 # %% markdown [markdown]
-# ### (14) Common Effect Reasoning: $\text{Time} \longrightarrow \text{Absenteeism} \longleftarrow \text{Process}$
+# ### (14) Common Effect Reasoning: Time $\longrightarrow$ Absenteeism $\longleftarrow$ Process
 #
-# $\color{green}{\text{THE ONLY WORKING CASE}}$
+# $\color{Green}{\text{THE ONLY (kind - of) WORKING CASE}}$
 # %% codecell
 
 # 14
