@@ -775,10 +775,12 @@ inf.get_all_backdoor_adjustment_sets(Time.var, Exertion.var)
 
 # TODO why is this true even when there is NO observed var? Should be false when there is no middle node / backdoor observation:
 carModel.is_active_trail(start = Exertion.var, end = Time.var, observed = None)
+# When including the backdoor this is no active trail
+carModel.is_active_trail(start = Exertion.var, end = Time.var, observed = [Time.var])
 
 # %% codecell
-# TODO because above (previous) works with observed = None, the below is false positive!
-carModel.is_active_trail(start = Exertion.var, end = Time.var, observed = [WorkCapacity.var])
+# TODO this is still false (supposed to be activated when including the middle node or one of its descendants). 
+carModel.is_active_trail(start = Exertion.var, end = Time.var, observed = [Time.var, WorkCapacity.var, Absenteeism.var])
 
 # %% codecell
 # TODO all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the middle node absenteeism)
