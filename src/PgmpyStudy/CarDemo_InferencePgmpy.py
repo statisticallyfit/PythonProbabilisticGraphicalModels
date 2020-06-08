@@ -513,6 +513,9 @@ drawGraph(carModel)
 # **Testing Marginal Independence:** Using Active Trails Methods
 # %% codecell
 # When NOT observing the state of the middle node, there is NO active trail (but need to bserve the Time var state because this is a backdoor)
+# TODO false positive?
+carModel.is_active_trail(start = Exertion.var, end = Training.var, observed = None)
+
 assert not carModel.is_active_trail(start = Exertion.var, end = Training.var, observed = [Time.var])
 
 # When observing the state, there is IS an active trail (also must always account for the backdoor, Time)
@@ -610,13 +613,13 @@ dfTE
 # %% markdown [markdown]
 # #### Testing conditional dependence:
 # $$
-# \color{Chartreuse}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{Exertion} \longrightarrow \text{WorkCapacity} \longrightarrow \text{Training}}
+# \color{Chartreuse}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{Exertion} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Training}}
 # $$
 # $$
-# \color{LimeGreen}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{Exertion} \longrightarrow \text{WorkCapacity} \longrightarrow \text{Training}}
+# \color{LimeGreen}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{Exertion} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Training}}
 # $$
 # $$
-# \color{Green}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{Exertion} \longrightarrow \text{WorkCapacity} \longrightarrow \text{Training}}
+# \color{Green}{\text{WorkCapacity (observed)}: \;\;\;\;\;\;\;  \text{Exertion} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Training}}
 # $$
 # Given that **WorkCapacity**'s state is observed, we can make the following equivalent statements:
 # * there IS active trail between **Exertion** and **Training**.
@@ -630,7 +633,7 @@ dfTE
 # %% codecell
 assert carModel.is_active_trail(start = Exertion.var, end = Training.var, observed = [WorkCapacity.var, Time.var])
 
-# See, there is active trail from Experience to Absenteeism when not observing WorkCapacity variable
+# See, there is active trail from Exertion to Training when WE ARE observing WorkCapacity variable
 showActiveTrails(carModel, variables = [Exertion, Training], observed = [WorkCapacity, Time])
 
 # %% markdown [markdown]
@@ -696,21 +699,29 @@ assert not allEqual(TWE.values, TWE_1.values, TWE_2.values, TWE_3.values), "Chec
 
 backdoorStateSet: Dict[Name, Set[State]] = {Time.var: {OBS_STATE_TIME}, WorkCapacity.var : {OBS_STATE_WORKCAPACITY} }
 
+
+# %% codecell
+# TODO WRONG? there shouldn't be an active trail (dependencies) when not including the middle node...
+# There are probability dependencies here because the values along columns aren't the same
+dfTE = eliminateSlice(carModel, query = Exertion, evidence = {Training.var : Training.states})
+dfTE
+
+# %% codecell
+# Check: there is active trail between Exertion and Training here because we include the middle node WorkCapacity (common effect model) thus there should be an active trail.
 dfTWE = eliminateSlice(carModel, query = Exertion,
                        evidence = backdoorStateSet |s| {Training.var : Training.states})
 dfTWE
 
 # %% markdown [markdown]
-# ### (2) Common Effect Reasoning: Exertion --> WorkCapacity <-- Training
+# ### (2) Common Effect Reasoning: $\text{Exertion} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Training}$
 # %% codecell
 dfTWE
 # %% markdown [markdown]
-# ### (4) Common Effect Reasoning: WorkCapacity --> Absenteeism <-- Time
+# ### (4) Common Effect Reasoning: $\text{WorkCapacity} \longrightarrow  \text{Absenteeism} \longleftarrow \text{Time}$
 # $\color{red}{\text{TODO: CASE 4 is not working!}}$
 # %% codecell
 
 # 4
-
 observedVars(carModel, start = WorkCapacity, end = Time)
 
 # %% codecell
@@ -739,14 +750,17 @@ dfTW
 # Here is the false positive (even if we include absenteeism the fake active trail is visible through the differing probabilities in workcapacity)
 dfTAW: DataFrame = eliminateSlice(carModel, query = WorkCapacity,
                                   evidence = {Absenteeism.var : {'Low'}, Time.var : {2, 15, 30}})
+
 dfTAW
 
 
 
 
 
+
+
 # %% markdown [markdown]
-# ### (5) Common Effect Reasoning: Time --> WorkCapacity <-- Exertion
+# ### (5) Common Effect Reasoning: $\text{Time} \longrightarrow  \text{WorkCapacity} \longleftarrow \text{Exertion}$
 # $\color{red}{\text{TODO: CASE 5 is not working!}}$
 # %% codecell
 
@@ -778,10 +792,10 @@ dfTAX: DataFrame = eliminateSlice(carModel, query = Exertion,
 dfTAX
 
 # %% markdown [markdown]
-# ### (6) Common Effect Reasoning: Time --> WorkCapacity <-- Experience
+# ### (6) Common Effect Reasoning: $\text{Time} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Experience}$
 # $\color{red}{\text{TODO: CASE 6 is not working!}}$
 # %% markdown [markdown]
-# ### (7) Common Effect Reasoning: Time --> WorkCapacity <-- Training
+# ### (7) Common Effect Reasoning: $\text{Time} \longrightarrow \text{WorkCapacity} \longleftarrow \text{Training}$
 # $\color{red}{\text{TODO: CASE 7 is not working!}}$
 
 
@@ -789,7 +803,7 @@ dfTAX
 
 
 # %% markdown [markdown]
-# ### (9) Common Effect Reasoning: Process ---> Absenteeism <--- Injury
+# ### (9) Common Effect Reasoning: $\text{Process} \longrightarrow \text{Absenteeism} \longleftarrow \text{Injury}$
 # $\color{red}{\text{TODO: CASE 9 is not working!}}$
 # %% codecell
 
@@ -835,7 +849,7 @@ dfIAP
 
 
 # %% markdown [markdown]
-# ### (10) Common Effect Reasoning: Tool ---> Injury <--- Process
+# ### (10) Common Effect Reasoning: $\text{Tool} \longrightarrow \text{Injury} \longleftarrow \text{Process}$
 # $\color{red}{\text{TODO: CASE 9 is not working!}}$
 # %% codecell
 
@@ -877,7 +891,7 @@ dfTIP
 
 
 # %% markdown [markdown]
-# ### (13) Common Effect Reasoning: WorkCapacity ----> Absenteeism <---- Injury
+# ### (13) Common Effect Reasoning: $\text{WorkCapacity} \longrightarrow \text{Absenteeism} \longleftarrow \text{Injury}$
 # $\color{red}{\text{TODO: CASE 13 is not working!}}$
 # %% codecell
 
@@ -901,7 +915,7 @@ assert not carModel.is_active_trail(start = WorkCapacity.var, end = Injury.var, 
 
 
 # TODO including the middle node should create an active trail.
-# WRONG: 
+# WRONG:
 carModel.is_active_trail(start = WorkCapacity.var, end = Injury.var, observed = [Absenteeism.var])
 carModel.is_active_trail(start = WorkCapacity.var, end = Injury.var, observed = [Absenteeism.var, Injury.var, WorkCapacity.var])
 
@@ -909,19 +923,66 @@ carModel.is_active_trail(start = WorkCapacity.var, end = Injury.var, observed = 
 # todo all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the
 # middle node Injury)
 
-dfTP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Tool.var :Tool.states} )
+dfIW: DataFrame = eliminateSlice(carModel, query = WorkCapacity, evidence = {Injury.var : set(dataDict[Injury.var])} )
+dfIW
+
+# %% codecell
+dfIAW: DataFrame = eliminateSlice(carModel, query = WorkCapacity, evidence = {Absenteeism.var : {'Low'},
+                                                                              Injury.var : set(dataDict[Injury.var])})
+dfIAW
+
+
+
+
+
+
+
+
+
+
+
+# %% markdown [markdown]
+# ### (14) Common Effect Reasoning: $\text{Time} \longrightarrow \text{Absenteeism} \longleftarrow \text{Process}$
+#
+# $\color{green}{\text{THE ONLY WORKING CASE}}$
+# %% codecell
+
+# 14
+
+observedVars(carModel, start = Time, end = Process)
+observedVars(carModel, start = Process, end = Time)
+
+inf = CausalInference(carModel)
+inf.get_all_backdoor_adjustment_sets(Process.var, Time.var)
+inf.get_all_backdoor_adjustment_sets(Time.var, Process.var)
+# %% codecell
+
+# TODO different from the rest of the cases above: here including NONE observed still lets active trail be nullified, even without including backdoors or middle node.
+# CORRECT: when middle node state is unknown, there is NO active trail
+assert not carModel.is_active_trail(start = Time.var, end = Process.var, observed = None)
+
+# This is the base case, accounting for back doors but NOT for the middle node.
+# CORRECT: when not including the middle node, the active trail is still nullified.
+assert not carModel.is_active_trail(start = Time.var, end = Process.var, observed = [Process.var])
+assert not carModel.is_active_trail(start = Time.var, end = Process.var, observed = [Time.var])
+
+
+# CORRECT: including the middle node should create an active trail where before there was no active trail.
+assert carModel.is_active_trail(start = Time.var, end = Process.var, observed = [Absenteeism.var])
+
+# TODO including the backdoors nullifies the active trail, why is that so?
+carModel.is_active_trail(start = Time.var, end = Process.var, observed = [Absenteeism.var, Process.var, Time.var])
+
+# %% codecell
+# todo all probs per exertion state must be the same (so probs along a column  must be the same, when not observing the
+# middle node Process)
+
+# CORRECT: no active trail when not including middle node as observed (no active trail since all probabilities are the same along the columns. Looking along columns means looking at probabilities of Process states for different time states)
+dfTP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Time.var : {2, 15, 30}} )
 dfTP
 
 # %% codecell
-dfTIP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Injury.var : {'Contact-Contusion'},
-                                                                        Tool.var : Tool.states})
-dfTIP
-
-
-
-
-
-# %% codecell
-# 14
-observedVars(carModel, start= Time, end= Process)
-# %% codecell
+# TODO FALSE POSITIVE HERE? Including the middle node Absenteeism but there is no active trail between Time and Process...
+dfTAP: DataFrame = eliminateSlice(carModel, query = Process, evidence = {Absenteeism.var : {'High'},
+                                                                         Time.var : {2, 15, 30}})
+dfTAP

@@ -586,7 +586,10 @@ def eliminate(model: BayesianModel,
         ordStateNames: List[State] = list(marginalDist.state_names.values())[0]
         df: DataFrame = DataFrame(data = queryProbs, index = ordStateNames, columns = topColNames)
         df.index.name = query.var
-        return df.transpose()
+
+        # NOTE: return DataFrame as-is (do not transpose) because I want a columnar view not a row view, when there
+        # are no evidence variables. (so the shape is like the DiscreteFactor in pgmpy)
+        return df
 
 
     # The variable names of the given random variables
@@ -605,8 +608,8 @@ def eliminate(model: BayesianModel,
 
     # Step 3: Key step, eliminating using the evidence combo
     condDists: List[DiscreteFactor] = [elim.query(variables = [query.var],
-                                              evidence = evDict,
-                                              show_progress = False) for evDict in observed]
+                                                  evidence = evDict,
+                                                  show_progress = False) for evDict in observed]
 
     # Step 4: Create the data frame
     evStateCombos = list(itertools.product(*evidenceStates))
@@ -643,12 +646,18 @@ def eliminateSlice(model: BayesianModel,
         pandas dataframe of the marginal / conditional distribution for query.
 
     '''
-    # Step 1: make the evidence list of name - states into random variables with singular states
-    # Each singular state becomes a single-element list in the random variable object
-    # NOTE: the nameStatePair[1] MUST be a list, cannot be a single non-iterable value like string or int.
-    evidenceVars: List[RandomVariable] = list(map(lambda nameStatePair : RandomVariable(var = nameStatePair[0],
-                                                                                        states = nameStatePair[1]),
-                                                  evidence.items()))
+    evidenceVars = None
+
+    if evidence is not None:
+
+        # Step 1: make the evidence list of name - states into random variables with singular states
+        # Each singular state becomes a single-element list in the random variable object
+        # NOTE: the nameStatePair[1] MUST be a list, cannot be a single non-iterable value like string or int.
+        evidenceVars: List[RandomVariable] = list(map(lambda nameStatePair : RandomVariable(var = nameStatePair[0],
+                                                                                            states = nameStatePair[1]),
+                                                      evidence.items()))
+
+
     # Step 2: pass into the eliminate method
     return eliminate(model, query = query, evidence = evidenceVars)
 
