@@ -1,6 +1,6 @@
 # %% markdown [markdown]
 # # Monty Hall Problem
-# Tutorial source
+# [Tutorial source](https://github.com/pgmpy/pgmpy/blob/dev/examples/Monty%20Hall%20Problem.ipynb)
 
 # %% markdown [markdown]
 # Doing path-setting:
