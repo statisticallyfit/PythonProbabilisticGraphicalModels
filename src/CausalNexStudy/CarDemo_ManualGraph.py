@@ -208,7 +208,7 @@ viz = plot_structure(
     all_node_attributes=NODE_STYLE.WEAK,
     all_edge_attributes=EDGE_STYLE.WEAK)
 
-filename_demo = curPath + "demo.png"
+filename_demo = graphVizCurrPath + "demo.png"
 
 
 viz.draw(filename_demo)

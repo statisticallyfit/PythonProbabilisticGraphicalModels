@@ -23,16 +23,16 @@ import os
 
 # Setting the baseline:
 os.chdir('/development/projects/statisticallyfit/github/learningmathstat/PythonProbabilisticGraphicalModels')
-curPath: str = os.getcwd() + "/src/CausalNexStudy/"
+graphVizCurrPath: str = os.getcwd() + "/src/utils/"
 
 PLAY_FONT_NAME: str = 'Play-Regular.ttf'
-PLAY_FONT_PATH = curPath + 'fonts/' + PLAY_FONT_NAME
+PLAY_FONT_PATH = graphVizCurrPath + 'fonts/' + PLAY_FONT_NAME
 
 INRIA_FONT_NAME: str = 'InriaSans-Regular'
-INRIA_FONT_PATH = curPath + 'fonts/' #+ INRIA_FONT_NAME
+INRIA_FONT_PATH = graphVizCurrPath + 'fonts/' #+ INRIA_FONT_NAME
 
 ACME_FONT_NAME: str = 'Acme-Regular.ttf'
-ACME_FONT_PATH: str = curPath + 'fonts/acme/' #+ ACME_FONT_NAME
+ACME_FONT_PATH: str = graphVizCurrPath + 'fonts/acme/' #+ ACME_FONT_NAME
 
 
 
