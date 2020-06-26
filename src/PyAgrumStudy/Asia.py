@@ -90,7 +90,7 @@ import collections
 # Create named tuple class with names "Names" and "Objects"
 RandomVariable = collections.namedtuple("RandomVariable", ["var", "states"])
 
-VisitToAsia = RandomVariable(var = VisitToAsia.var, states = ['True', 'False'])
+VisitToAsia = RandomVariable(var = "visit_to_Asia", states = ['True', 'False'])
 Smoking = RandomVariable(var = "smoking", states = ['True', 'False'])
 Tuberculosis = RandomVariable(var = "tuberculosis", states = ['True', 'False'])
 LungCancer = RandomVariable(var = "lung_cancer", states = ['True', 'False'])
@@ -104,6 +104,8 @@ Dyspnoea = RandomVariable(var = "dyspnoea", states = ['True', 'False'])
 
 asiaBN: BayesNet = gum.loadBN(filename = dataPath + "asia.bif")
 asiaBN
+# %% codecell
+asiaBN.names()
 # %% markdown
 # Viewing the CPTs of the original network:
 # %% codecell
@@ -126,20 +128,84 @@ asiaBN.cpt(Dyspnoea.var)
 # %% codecell
 from pyAgrum import DiscreteVariable
 
-smokingRV: DiscreteVariable = asiaBN.variableFromName(name = Smoking.var)
+VisitToAsia_RV: DiscreteVariable = asiaBN.variableFromName(name = VisitToAsia.var)
+Smoking_RV: DiscreteVariable = asiaBN.variableFromName(name = Smoking.var)
+Tuberculosis_RV: DiscreteVariable = asiaBN.variableFromName(name = Tuberculosis.var)
+LungCancer_RV: DiscreteVariable = asiaBN.variableFromName(name = LungCancer.var)
+TuberOrCancer_RV: DiscreteVariable = asiaBN.variableFromName(name = TuberOrCancer.var)
+Bronchitis_RV: DiscreteVariable = asiaBN.variableFromName(name = Bronchitis.var)
+PositiveXray_RV: DiscreteVariable = asiaBN.variableFromName(name = PositiveXray.var)
+Dyspnoea_RV: DiscreteVariable = asiaBN.variableFromName(name = Dyspnoea.var)
 
-asiaBN.idFromName(name = Smoking.var)
 
-asiaBN.changeVariableLabel( 5,  "0", "False")
+VisitToAsia_ID: int = asiaBN.nodeId(var = VisitToAsia_RV)
+assert VisitToAsia_ID == 0
+Smoking_ID: int = asiaBN.idFromName(name = Smoking.var)
+assert Smoking_ID == 5
+Tuberculosis_ID: int = asiaBN.nodeId(var = Tuberculosis_RV)
+assert Tuberculosis_ID == 1
+LungCancer_ID: int = asiaBN.nodeId(var = LungCancer_RV)
+assert LungCancer_ID == 4
+TuberOrCancer_ID: int = asiaBN.nodeId(var = TuberOrCancer_RV)
+assert TuberOrCancer_ID == 2
+Bronchitis_ID: int = asiaBN.nodeId(var = Bronchitis_RV)
+assert Bronchitis_ID == 6
+PositiveXray_ID: int = asiaBN.nodeId(var = PositiveXray_RV)
+assert PositiveXray_ID == 3
+Dyspnoea_ID: int = asiaBN.nodeId(var = Dyspnoea_RV)
+assert Dyspnoea_ID == 7
 
 
-smokingRV_again = asiaBN.variableFromName(name = Smoking.var)
-smokingRV.label(0)
-smokingRV.label(1)
-smokingRV_again.label(0)
-smokingRV_again.label(1)
+assert VisitToAsia_RV.labels() == ('0', '1')
+assert Smoking_RV.labels() == ('0', '1')
+assert Tuberculosis_RV.labels() == ('0', '1')
+assert LungCancer_RV.labels() == ('0', '1')
+assert TuberOrCancer_RV.labels() == ('0', '1')
+assert Bronchitis_RV.labels() == ('0', '1')
+assert PositiveXray_RV.labels() == ('0', '1')
+assert Dyspnoea_RV.labels() == ('0', '1')
 
-smokingRV.labels()
+
+# Create a separate model with different random variable state labels: (same copy so far)
+asiaBN_states: BayesNet = BayesNet(asiaBN)
+
+
+asiaBN_states.changeVariableLabel(VisitToAsia_ID, "0", "False")
+asiaBN_states.changeVariableLabel(VisitToAsia_ID, "1", "True")
+
+asiaBN_states.changeVariableLabel(Smoking_ID, "0", "False")
+asiaBN_states.changeVariableLabel(Smoking_ID, "1", "True")
+
+asiaBN_states.changeVariableLabel(Tuberculosis_ID, "0", "False")
+asiaBN_states.changeVariableLabel(Tuberculosis_ID, "1", "True")
+
+asiaBN_states.changeVariableLabel(LungCancer_ID, "0", "False")
+asiaBN_states.changeVariableLabel(LungCancer_ID, "1", "True")
+
+asiaBN_states.changeVariableLabel(TuberOrCancer_ID, "0", "False")
+asiaBN_states.changeVariableLabel(TuberOrCancer_ID, "1", "True")
+
+asiaBN_states.changeVariableLabel(Bronchitis_ID, "0", "False")
+asiaBN_states.changeVariableLabel(Bronchitis_ID, "1", "True")
+
+asiaBN_states.changeVariableLabel(PositiveXray_ID, "0", "False")
+asiaBN_states.changeVariableLabel(PositiveXray_ID, "1", "True")
+
+asiaBN_states.changeVariableLabel(Dyspnoea_ID, "0", "False")
+asiaBN_states.changeVariableLabel(Dyspnoea_ID, "1", "True")
+
+
+# NOTE: (because of C++ pointers??) the separate DiscreteVariable objects themselves are the ones changing state, via mutation of the BayesNet's state
+assert VisitToAsia_RV.labels() == ('False', 'True')
+assert Smoking_RV.labels() == ('False', 'True')
+assert Tuberculosis_RV.labels() == ('False', 'True')
+assert LungCancer_RV.labels() == ('False', 'True')
+assert TuberOrCancer_RV.labels() == ('False', 'True')
+assert Bronchitis_RV.labels() == ('False', 'True')
+assert PositiveXray_RV.labels() == ('False', 'True')
+assert Dyspnoea_RV.labels() == ('False', 'True')
+
+
 # %% codecell
 outPath: str = curPath + "out/sampledAsiaResults.csv"
 
@@ -159,20 +225,23 @@ oslike.head(outPath)
 
 # Using the bayes net as template for variables
 # TODO need to include just filename, not also the bayesnet else I get error, why is notebook different? https://hyp.is/gK6YXrb6EeqBWm9i4zX_qw/www-desir.lip6.fr/~phw/aGrUM/docs/last/notebooks/11-structuralLearning.ipynb.html
-# TODO now it seems to work
-asiaLearner: BNLearner = gum.BNLearner(outPath, asiaBN)
+
+asiaLearner: BNLearner = gum.BNLearner(outPath , asiaBN)
+# gum.BNLearner(outPath, asiaBN_states) # doesn't work on the labeled version??? why
+
 asiaLearner
 # %% codecell
 asiaLearner.names()
 # %% codecell
 # Returns the column id corresponding to the variable name
-asiaLearner.idFromName('visit_to_Asia') # first row is 0
-# %% codecell
-asiaLearner.nameFromId(4)
+assert asiaLearner.idFromName(VisitToAsia.var) == VisitToAsia_ID and VisitToAsia_ID == 0
+
+assert asiaLearner.nameFromId(VisitToAsia_ID) == VisitToAsia.var
 # %% markdown
 # The BNLearner is capable of recognizing missing values in databases. For this purpose, just indicate as a last argument the list of the strings that represent missing values. Note that, currently, the BNLearner is not yet able to learn in the presence of missing values. This is the reason why, when it discovers that there exist such values, it raises a gum.MissingValueInDatabase exception.
 # %% codecell
 gum.BNLearner(outPath, asiaBN,  ['?', 'N/A'] )
+# gum.BNLearner(outPath,   ['?', 'N/A'] )
 # %% codecell
 oslike.head(filename = dataPath + "asia_missing.csv")
 
@@ -192,6 +261,8 @@ except gum.MissingValueInDatabase:
 # using the BN as template for variables and labels
 learner = gum.BNLearner(outPath, asiaBN)
 learner.setInitialDAG(g = asiaBN.dag())
+
+# Learn the parameters when structure is known:
 asiaBN_learnedParams: BayesNet = learner.learnParameters()
 
 gnb.showBN(asiaBN_learnedParams)
@@ -215,13 +286,13 @@ from IPython.display import HTML
 HTML('<table><tr><td style="text-align:center;"><h3>original BN</h3></td>'+
      '<td style="text-align:center;"><h3>Learned BN</h3></td></tr>'+
      '<tr><td><center>'+
-     gnb.getPotential(asiaBN.cpt(asiaBN.idFromName('visit_to_Asia')))
+     gnb.getPotential(asiaBN.cpt(VisitToAsia.var))
      +'</center></td><td><center>'+
-     gnb.getPotential(asiaBN_learnedParams.cpt(asiaBN_learnedParams.idFromName('visit_to_Asia')))
+     gnb.getPotential(asiaBN_learnedParams.cpt(VisitToAsia.var))
      +'</center></td></tr><tr><td><center>'+
-     gnb.getPotential(asiaBN.cpt (asiaBN.idFromName('tuberculosis')))
+     gnb.getPotential(asiaBN.cpt (Tuberculosis.var))
      +'</center></td><td><center>'+
-     gnb.getPotential(asiaBN_learnedParams.cpt(asiaBN_learnedParams.idFromName('tuberculosis')))
+     gnb.getPotential(asiaBN_learnedParams.cpt(Tuberculosis.var))
      +'</center></td></tr></table>')
 # HTML(gnb.getPotential(asiaBN.cpt(asiaBN.idFromName('visit_to_Asia'))))
 
@@ -230,14 +301,104 @@ HTML('<table><tr><td style="text-align:center;"><h3>original BN</h3></td>'+
 # ## Structural Learning a BN from the database
 # Three algorithms for structural learning:
 # * LocalSearchWithTabuList
+# * GreedyHillClimbing
+# * K2
+#
+# $\color{red}{\text{TODO:  understand these algorithms}}$
+#
+# **Using:** LocalSearchWithTabuList
 # %% codecell
 learner = gum.BNLearner(outPath, asiaBN) # using bn as template for variables
-asiaBN_learnedBN = learner.learnBN()
+
+# Learn the structure of the BN
+learner.useLocalSearchWithTabuList()
+
+asiaBN_learnedStructure_localSearchAlgo = learner.learnBN()
+
+print("Learned in {}ms".format(1000 * learner.currentTime()))
+
+htmlInfo: str = gnb.getInformation(asiaBN_learnedStructure_localSearchAlgo)
+gnb.sideBySide(asiaBN_learnedStructure_localSearchAlgo, htmlInfo)
 
 # %% markdown
-# Noting the differences between original BN and the different ways they were learned:
+# Notice how the original .bif BN and parameter-learned BN and structure-learned BN are different:
 # %% codecell
-asiaBN.variableNodeMap()
-asiaBN.cpt(VisitToAsia.var)
-asiaBN_learnedBN.cpt(VisitToAsia.var)
-asiaBN_learnedParams.cpt(VisitToAsia.var)
+asiaBN
+# %% codecell
+asiaBN_learnedParams
+
+
+# %% markdown
+# [`ExactBNdistance`](https://hyp.is/1OhsSKy4EeqyemuIJO85ew/pyagrum.readthedocs.io/en/0.18.0/BNToolsCompar.html) is a class representing exacte computation of divergence and distance between BNs
+# %% codecell
+from pyAgrum import ExactBNdistance
+
+exact: ExactBNdistance = gum.ExactBNdistance(asiaBN, asiaBN_learnedStructure_localSearchAlgo)
+exact.compute()
+# %% codecell
+exact: ExactBNdistance = gum.ExactBNdistance(asiaBN_learnedParams, asiaBN_learnedStructure_localSearchAlgo)
+exact.compute()
+# %% codecell
+exact: ExactBNdistance = gum.ExactBNdistance(asiaBN, asiaBN_learnedParams)
+exact.compute()
+
+
+
+# %% markdown
+# **Using:** A Greedy Hill Climbing algorithm: (with insert, remove and change arc as atomic operations)
+# %% codecell
+learner = gum.BNLearner(outPath, asiaBN) # using bn as template for variables
+
+# Learn the structure of the BN
+learner.useGreedyHillClimbing()
+
+asiaBN_learnedStructure_greedyAlgo = learner.learnBN()
+
+print("Learned in {}ms".format(1000 * learner.currentTime()))
+
+htmlInfo: str = gnb.getInformation(asiaBN_learnedStructure_greedyAlgo)
+gnb.sideBySide(asiaBN_learnedStructure_greedyAlgo, htmlInfo)
+
+
+# %% markdown
+# Finding distance between these BNs:
+# %% codecell
+exact: ExactBNdistance = gum.ExactBNdistance(asiaBN, asiaBN_learnedStructure_greedyAlgo)
+exact.compute()
+# %% codecell
+exact: ExactBNdistance = gum.ExactBNdistance(asiaBN_learnedStructure_localSearchAlgo, asiaBN_learnedStructure_greedyAlgo)
+exact.compute()
+
+
+
+
+
+# %% markdown
+# **Using:** A K2 algorithm
+# %% codecell
+learner = gum.BNLearner(outPath, asiaBN) # using bn as template for variables
+
+# Learn the structure of the BN
+
+learner.useK2(list(asiaBN.nodes())) # needs the ids for some reason (??)
+
+asiaBN_learnedStructure_k2Algo = learner.learnBN()
+
+print("Learned in {}ms".format(1000 * learner.currentTime()))
+
+htmlInfo: str = gnb.getInformation(asiaBN_learnedStructure_k2Algo)
+gnb.sideBySide(asiaBN_learnedStructure_k2Algo, htmlInfo)
+
+
+# %% markdown
+# Finding distance between these BNs:
+# %% codecell
+exact: ExactBNdistance = gum.ExactBNdistance(asiaBN, asiaBN_learnedStructure_k2Algo)
+exact.compute()
+# %% codecell
+exact: ExactBNdistance = gum.ExactBNdistance(asiaBN_learnedStructure_k2Algo, asiaBN_learnedStructure_greedyAlgo)
+exact.compute()
+# %% codecell
+exact: ExactBNdistance = gum.ExactBNdistance(asiaBN_learnedStructure_k2Algo,
+                                             asiaBN_learnedStructure_localSearchAlgo)
+exact.compute()

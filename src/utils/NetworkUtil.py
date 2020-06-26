@@ -121,9 +121,9 @@ def localIndependencySynonyms(model: BayesianModel,
 def indepSynonymTable(model: BayesianModel, query: RandomVariable):
 
     # fancy independencies
-    xs: List[str] = localIndependencySynonyms(model = model, query= query.var, useNotation = True)
+    xs: List[str] = localIndependencySynonyms(model = model, query= query, useNotation = True)
     # regular notation independencies
-    ys: List[str] = localIndependencySynonyms(model = model, query= query.var)
+    ys: List[str] = localIndependencySynonyms(model = model, query= query)
 
     # Skip if no result (if not independencies)
     if xs is None and ys is None:
