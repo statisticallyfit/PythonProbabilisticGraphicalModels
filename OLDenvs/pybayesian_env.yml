@@ -1,12 +1,8 @@
 name: pybayesian_env
 channels:
   - conda-forge
-  - pytorch
   - defaults
 dependencies:
-
-
-
 
   # ========================
   # Core
@@ -21,36 +17,35 @@ dependencies:
   - python-language-server
   - ipykernel
 
-
-
-
   # ========================
-  # NLP (minimized to be relevant only for bayes things)
+  # NLP
   # ========================
-  - pytorch>=1.4.0 # for tensors
-  - pytorch-pretrained-bert
-  - tensorflow==1.14.0 # for bijectors / distributions
-  - tensorflow-probability
-  - tensorboard
-  - torchtext
   - numpy
   - scipy
   - sympy
   - spacy
   - statsmodels
   - pandas
+  - nltk
+  - scikit-learn
+  - pytorch
+  - pytorch-pretrained-bert
+  - tensorflow==1.14.0
+  - tensorboard
+  - tensorflow-probability
 
 
 
   # ========================
   # Bayesian Networks / Statistics (SPOTLIGHT)
   # ========================
-  - bayespy 
+  - bayespy
   - algopy
   - emcee
   - pymc3
-  # - pgmpy # >=0.1.11
   - pyagrum>=0.18.0
+  #####- ankurankan::pgmpy>=0.1.9 # TODO try here version 0.1.10
+
 
 
   # ==============
@@ -59,9 +54,6 @@ dependencies:
   - jax
   - numdifftools
   - xarray
-
-
-
 
   # ==============
   # Plotting
@@ -72,26 +64,25 @@ dependencies:
   - pygraphviz>=1.5
 
 
-
-
   # ==============
   # Pip things
   # ============== 
   - pip:
       - pgmpy==0.1.10
-      - causalnex>=0.5.0
       - transformers>=2.5.0
-      - mxnet #>=1.5.1,<1.6.0
+      - tensor2tensor
+      - torchtext
+      - mxnet>=1.5.1,<1.6.0
       - gluonnlp
-      - gluonts #>=0.5.0
+      - gluonts>=0.5.0
       - numpyro
       - edward
+      - causalnex>=0.5.0 # put here in pip to get version 0.5.0 as opposed to 0.4.3
       - inferpy>=1.3.0
       - pydot
       - svgwrite
       - daft
       - pampy # a functional pattern matching for python (so easier readability in lambdas!)
-   
 
+prefix: /development/bin/python/conda3_ana/envs/pybayesian_env
 
-prefix: /development/bin/python/miniconda3/envs/pybayesian_env
